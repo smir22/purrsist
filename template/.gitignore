@@ -1,0 +1,7 @@
+.obsidian/workspace*.json
+.DS_Store
+.trash/
+.sync/inbox.json
+.sync/processed.txt
+.sync/calendar.txt
+.sync/__pycache__/

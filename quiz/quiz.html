@@ -1,0 +1,291 @@
+<title>Second Brain Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one narrow column, one question card at a time, thumb-reach actions at the bottom of the card */
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --ink:#151a24; --muted:#5d6676; --line:#dfe3ea;
+  --accent:#2747c9; --accent-soft:#e6ebfb; --on-accent:#ffffff;
+  --good:#1d7a4d; --good-soft:#e3f3ea; --warn:#9a6200; --warn-soft:#fbf0db; --bad:#b3261e; --bad-soft:#fbe6e4;
+  --display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body:"IBM Plex Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1218; --surface:#181c25; --ink:#e8ebf1; --muted:#9aa3b3; --line:#2a303c;
+  --accent:#8ea2ff; --accent-soft:#1f2747; --on-accent:#0f1218;
+  --good:#5fcf98; --good-soft:#15291f; --warn:#e7b25a; --warn-soft:#2c2414; --bad:#f08a80; --bad-soft:#321a18; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1218; --surface:#181c25; --ink:#e8ebf1; --muted:#9aa3b3; --line:#2a303c;
+  --accent:#8ea2ff; --accent-soft:#1f2747; --on-accent:#0f1218;
+  --good:#5fcf98; --good-soft:#15291f; --warn:#e7b25a; --warn-soft:#2c2414; --bad:#f08a80; --bad-soft:#321a18; color-scheme:dark}
+html,body{background:var(--bg)}
+body{color:var(--ink);font:16px/1.5 var(--body);padding-inline:16px;padding-block:20px 40px}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header{display:flex;flex-direction:column;gap:8px}
+h1{font:700 1.6rem/1.1 var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:.9rem;margin:0}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{font:500 .72rem/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:6px 8px;border-radius:6px;background:var(--accent-soft);color:var(--accent)}
+.chip.plain{background:transparent;color:var(--muted);padding-inline:0}
+.topic{font:600 1.05rem/1.3 var(--display);margin:0}
+.ladder{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.ladder span{font:500 .62rem/1 var(--mono);color:var(--muted);text-align:center;padding-top:7px;border-top:3px solid var(--line);font-variant-numeric:tabular-nums}
+.ladder span.done{border-color:var(--accent);opacity:.55}
+.ladder span.now{border-color:var(--accent);color:var(--accent)}
+.prompt{font-size:1.08rem;line-height:1.5;margin:0;white-space:pre-wrap}
+.opts{display:flex;flex-direction:column;gap:8px}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:12px 14px;text-align:left;min-height:48px}
+button:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button:disabled{opacity:.55;cursor:default}
+.opts button.right{border-color:var(--good);background:var(--good-soft)}
+.opts button.wrong{border-color:var(--bad);background:var(--bad-soft)}
+textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:12px;resize:vertical}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:600;text-align:center;flex:1}
+.ghost{text-align:center;color:var(--muted)}
+.hint{font-size:.8rem;color:var(--muted);margin:0}
+.fb{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:14px}
+.verdict{align-self:flex-start;font:600 .8rem/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:7px 10px;border-radius:6px}
+.v-correct,.r-pass{background:var(--good-soft);color:var(--good)}
+.v-partial,.r-shaky{background:var(--warn-soft);color:var(--warn)}
+.v-wrong,.r-fail{background:var(--bad-soft);color:var(--bad)}
+.fb h3{font:500 .72rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:4px 0 0}
+.fb ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.fb p{margin:0;white-space:pre-wrap}
+.mine{color:var(--muted);font-style:italic}
+.self{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.self button{text-align:center;font-weight:600}
+.rows{display:flex;flex-direction:column}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row div{min-width:0}
+.row b{display:block;font-weight:600}
+.row small{color:var(--muted);font-size:.82rem;font-variant-numeric:tabular-nums}
+.pill{font:600 .72rem/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:6px 9px;border-radius:6px;white-space:nowrap}
+.mode{display:flex;gap:4px;align-self:flex-start;background:var(--line);padding:3px;border-radius:9px}
+.mode button{min-height:32px;padding:6px 10px;border:0;border-radius:7px;background:transparent;font-size:.8rem;color:var(--muted);text-align:center}
+.mode button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600}
+.empty h2{font:600 1.15rem/1.3 var(--display);margin:0}
+.empty p{margin:0;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Second Brain Quiz</h1>
+    <p class="sub" id="sub">Loading your questions…</p>
+    <div class="bar" aria-hidden="true"><i id="prog"></i></div>
+    <div class="mode" id="mode" role="group" aria-label="How strictly Claude marks written answers">
+      <button type="button" data-m="lenient">Lenient</button>
+      <button type="button" data-m="balanced">Balanced</button>
+      <button type="button" data-m="strict">Strict</button>
+    </div>
+  </header>
+  <main id="main">
+    <section class="card empty">
+      <h2>Waiting for today's questions</h2>
+      <p>Questions load from your vault at 09:52 and 21:52. Answers sync back to your vault at the same times.</p>
+    </section>
+  </main>
+</div>
+
+<script>
+const WAIT = [1, 3, 7, 14, 31, 60, 120];
+const KIND = { recall: "Recall", why: "Why", apply: "Apply", teach: "Teach it" };
+const SCORE = { correct: 1, partial: 0.5, wrong: 0 };
+const main = document.getElementById("main");
+let Q = [], A = new Map(), db = null, sample = null;
+let shownId = null, lastKey = "", busy = false, selfGrade = null;
+
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+
+// Same scoring the vault sync uses: avg >= .8 pass, >= .5 shaky, else fail
+function topicResult(qs) {
+  const s = qs.map(q => SCORE[A.get(q.id)?.verdict] ?? 0);
+  const avg = s.reduce((a, b) => a + b, 0) / s.length;
+  return avg >= 0.8 ? "pass" : avg >= 0.5 ? "shaky" : "fail";
+}
+function nextStage(stage, r) { return r === "pass" ? Math.min(stage + 1, 6) : r === "shaky" ? stage : 0; }
+
+function render() {
+  const pending = Q.filter(q => !A.has(q.id));
+  const answered = Q.length - pending.length;
+  const topics = [...new Set(Q.map(q => q.topic))];
+  document.getElementById("prog").style.width = Q.length ? (answered / Q.length * 100) + "%" : "0";
+  document.getElementById("sub").textContent = Q.length
+    ? `${answered} of ${Q.length} answered · ${topics.length} topic${topics.length === 1 ? "" : "s"}`
+    : "Nothing loaded yet";
+
+  const cur = Q.find(q => q.id === shownId) || pending[0] || null;
+  const key = !Q.length ? "empty" : !cur ? "done:" + A.size : cur.id + (shownId ? ":fb" : "") + (selfGrade ? ":self" : "");
+  if (key === lastKey) return;          // keep typed text when a snapshot arrives
+  lastKey = key;
+  main.replaceChildren(!Q.length ? emptyCard() : !cur ? doneCard(topics) : questionCard(cur));
+}
+
+function emptyCard() {
+  const c = el("section", "card empty");
+  c.append(el("h2", null, "Nothing due right now"),
+    el("p", null, "New questions load from your vault at 09:52 and 21:52. Say \"ingest\" or \"quiz me\" to Claude to add more."));
+  return c;
+}
+
+function ladder(stage) {
+  const l = el("div", "ladder"); l.setAttribute("aria-label", `Stage ${stage} of 6`);
+  WAIT.forEach((d, i) => l.append(el("span", i < stage ? "done" : i === stage ? "now" : "", d + "d")));
+  return l;
+}
+
+function questionCard(q) {
+  const c = el("section", "card");
+  const stage = Number(q.stage) || 0;
+  const meta = el("div", "meta");
+  meta.append(el("span", "chip", KIND[q.kind] || q.kind), el("span", "chip plain", `Stage ${stage} · ${WAIT[stage]}d gap`));
+  c.append(meta, el("h2", "topic", q.topic), ladder(stage), el("p", "prompt", q.prompt));
+
+  const a = A.get(q.id);
+  if (shownId === q.id && a) { c.append(feedback(q, a)); return c; }
+
+  if (Array.isArray(q.options) && q.options.length) {
+    const opts = el("div", "opts");
+    q.options.forEach((o, i) => {
+      const b = el("button", null, o);
+      b.onclick = () => {
+        const ok = i === Number(q.correct);
+        opts.querySelectorAll("button").forEach((x, j) => { x.disabled = true; if (j === Number(q.correct)) x.classList.add("right"); });
+        if (!ok) b.classList.add("wrong");
+        save(q, { response: o, verdict: ok ? "correct" : "wrong", right: [], missing: ok ? [] : [q.options[q.correct]], tip: "" });
+      };
+      opts.append(b);
+    });
+    c.append(opts, dontKnow(q));
+    return c;
+  }
+
+  const ta = el("textarea"); ta.id = "ans-" + q.id; ta.placeholder = "Type or dictate your answer";
+  ta.setAttribute("aria-label", "Your answer");
+  if (selfGrade === q.id) { c.append(selfGradeBlock(q, ta.value)); return c; }
+  const check = el("button", "primary", "Check answer");
+  check.onclick = () => grade(q, ta.value, check);
+  const row = el("div", "actions"); row.append(check, dontKnow(q, true));
+  c.append(ta, row, el("p", "hint", "Tip: tap the mic on your keyboard to answer by voice."));
+  return c;
+}
+
+function dontKnow(q, inline) {
+  const b = el("button", "ghost", "I don't know");
+  b.onclick = () => save(q, { response: "", verdict: "wrong", right: [], missing: q.points || [], tip: "" });
+  if (inline) return b;
+  const row = el("div", "actions"); row.append(b); return row;
+}
+
+async function grade(q, text, btn) {
+  if (busy) return;
+  if (!text.trim()) return save(q, { response: "", verdict: "wrong", right: [], missing: q.points || [], tip: "" });
+  if (!sample) { selfGrade = q.id; pendingText = text; lastKey = ""; return render(); }
+  busy = true; btn.disabled = true; btn.textContent = "Marking…";
+  const prompt = `You are marking a spaced-repetition quiz answer for a DevOps engineer, typed or dictated on a phone. Accept correct answers in different words and informal wording. The first key point is the core idea.
+Marking level: ${mode.toUpperCase()}. ${RULES[mode]}
+Topic: ${q.topic}
+Question: ${q.prompt}
+Model answer: ${q.answer}
+Key points: ${(q.points || []).map(p => "- " + p).join("\n")}
+Learner's answer: ${text}
+
+Reply with only JSON: {"verdict":"correct"|"partial"|"wrong","right":[short strings: points they got],"missing":[at most 3 short strings: only important gaps or wrong claims],"tip":"one concrete suggestion to make the answer stronger, e.g. for an interview — put nice-to-have details here, not in missing"}
+${q.kind === "teach" ? `This is a Feynman explain-back: judge whether a junior would understand the idea from it. Only list real gaps (wrong claims, or a step that leaves the idea unclear) in "missing".` : ""}`;
+  try {
+    const r = await sample.json(prompt, { modelTier: "quick" });
+    const v = ["correct", "partial", "wrong"].includes(r?.verdict) ? r.verdict : null;
+    if (!v) throw { code: "invalid_json" };
+    await save(q, { response: text, verdict: v, right: arr(r.right), missing: arr(r.missing), tip: String(r.tip || "") });
+  } catch (e) {
+    selfGrade = q.id; pendingText = text; lastKey = ""; render();   // Claude unavailable: mark it yourself
+  } finally { busy = false; }
+}
+let pendingText = "";
+const RULES = {
+  lenient: "correct = the core idea is right, even if loosely worded or short; partial = on the right track but the core idea is muddled; wrong = the core idea is missing or wrong. Don't penalise missing details.",
+  balanced: "correct = the core idea is right and nothing important is wrong (missing minor details is fine); partial = the core idea is only partly right, or one important point is wrong or missing; wrong = the core idea is missing or wrong.",
+  strict: "Interview standard. correct = every key point covered accurately with precise terms; partial = core idea right but a key point missing or imprecise; wrong = core idea missing or wrong, or any serious error.",
+};
+let mode = "balanced";
+try { mode = RULES[localStorage.getItem("mark-mode")] ? localStorage.getItem("mark-mode") : "balanced"; } catch (e) {}
+const modeBtns = document.querySelectorAll("#mode button");
+const showMode = () => modeBtns.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.m === mode)));
+modeBtns.forEach(b => b.onclick = () => { mode = b.dataset.m; showMode(); try { localStorage.setItem("mark-mode", mode); } catch (e) {} });
+showMode();
+const arr = x => Array.isArray(x) ? x.map(String).slice(0, 6) : [];
+
+function selfGradeBlock(q, _) {
+  const f = el("div", "fb");
+  f.append(el("h3", null, "Your answer"), el("p", "mine", pendingText || "—"),
+    el("h3", null, "Model answer"), el("p", null, q.answer || ""),
+    el("p", "hint", "Couldn't reach Claude to mark this. How did you do?"));
+  const s = el("div", "self");
+  [["correct", "Got it"], ["partial", "Partly"], ["wrong", "Missed"]].forEach(([v, label]) => {
+    const b = el("button", "v-" + v, label);
+    b.onclick = () => { selfGrade = null; save(q, { response: pendingText, verdict: v, right: [], missing: v === "correct" ? [] : (q.points || []), tip: "Self-marked" }); };
+    s.append(b);
+  });
+  f.append(s); return f;
+}
+
+function feedback(q, a) {
+  const f = el("div", "fb");
+  f.append(el("span", "verdict v-" + a.verdict, { correct: "Correct", partial: "Partly right", wrong: "Not yet" }[a.verdict]));
+  if (a.response && !(Array.isArray(q.options) && q.options.length)) f.append(el("h3", null, "Your answer"), el("p", "mine", a.response));
+  const list = (title, items) => { if (!items?.length) return; const u = el("ul"); items.forEach(t => u.append(el("li", null, t))); f.append(el("h3", null, title), u); };
+  list("You got", a.right); list("Missing", a.missing);
+  f.append(el("h3", null, "Model answer"), el("p", null, q.answer || ""));
+  if (a.tip && a.tip !== "Self-marked") f.append(el("h3", null, "Make it stronger"), el("p", null, a.tip));
+  const next = el("button", "primary", Q.some(x => !A.has(x.id)) ? "Next question" : "See results");
+  next.onclick = () => { shownId = null; render(); };
+  const row = el("div", "actions"); row.append(next); f.append(row);
+  return f;
+}
+
+function doneCard(topics) {
+  const c = el("section", "card");
+  c.append(el("h2", "topic", "Done for now"), el("p", "hint", "Results sync to your vault at 09:52 and 21:52. This is where each topic moves on the ladder."));
+  const rows = el("div", "rows");
+  topics.forEach(t => {
+    const qs = Q.filter(q => q.topic === t), stage = Number(qs[0].stage) || 0;
+    const r = topicResult(qs), ns = nextStage(stage, r);
+    const row = el("div", "row"), d = el("div");
+    d.append(el("b", null, t), el("small", null, `Stage ${stage} → ${ns} · back in ${r === "fail" ? 1 : WAIT[ns]} day${r === "fail" ? "" : "s"}`));
+    row.append(d, el("span", "pill r-" + r, r)); rows.append(row);
+  });
+  c.append(rows); return c;
+}
+
+async function save(q, data) {
+  shownId = q.id;
+  A.set(q.id, data); lastKey = ""; render();              // show feedback straight away
+  try {
+    await db.collection("answers").doc(q.id).set({ ...data, topic: q.topic, page: q.page || "", kind: q.kind, at: new Date().toISOString() });
+  } catch (e) {
+    A.delete(q.id); shownId = null; lastKey = ""; render();
+    document.getElementById("sub").textContent = e?.code === "quota_exceeded" ? "Storage full. Ask Claude to sync your vault." : "Couldn't save that answer. Check your signal and try again.";
+  }
+}
+
+async function boot() {
+  if (!window.claude?.use) return;
+  db = await claude.use("db");
+  if (!db) { document.getElementById("sub").textContent = "Open this page in Claude to load your questions."; return; }
+  claude.use("sample").then(s => { sample = s; });
+  const fail = () => { document.getElementById("sub").textContent = "Lost connection. Reopen the page to reload."; };
+  db.collection("questions").orderBy("order").onSnapshot(s => { Q = s.docs.map(d => ({ id: d.id, ...d.data() })); render(); }, fail);
+  db.collection("answers").onSnapshot(s => {
+    const m = new Map(s.docs.map(d => [d.id, d.data()]));
+    for (const [k, v] of A) if (!m.has(k) && k === shownId) m.set(k, v);   // keep local feedback until the write lands
+    A = m; render();
+  }, fail);
+}
+boot();
+</script>
