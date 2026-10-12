@@ -111,7 +111,7 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
   <main id="main">
     <section class="card empty">
       <h2>Waiting for today's questions</h2>
-      <p>Questions load from your vault at 09:52 and 21:52. Answers sync back to your vault at the same times.</p>
+      <p>Questions load from your vault at the nightly sync, which also saves your answers back to it.</p>
     </section>
   </main>
   </div>
@@ -155,7 +155,7 @@ function render() {
 function emptyCard() {
   const c = el("section", "card empty");
   c.append(el("h2", null, "Nothing due right now"),
-    el("p", null, "New questions load from your vault at 09:52 and 21:52. Say \"ingest\" or \"quiz me\" to Claude to add more."));
+    el("p", null, "New questions load at the nightly sync, or tap Sync now on the Progress tab. Say \"ingest\" or \"quiz me\" to Claude to add more."));
   return c;
 }
 
@@ -289,7 +289,7 @@ function feedback(q, a) {
 
 function doneCard(topics) {
   const c = el("section", "card");
-  c.append(el("h2", "topic", "Done for now"), el("p", "hint", "Results sync to your vault at 09:52 and 21:52. This is where each topic moves on the ladder."));
+  c.append(el("h2", "topic", "Done for now"), el("p", "hint", "Results sync to your vault tonight (or tap Sync now on the Progress tab). This is where each topic moves on the ladder."));
   const rows = el("div", "rows");
   topics.forEach(t => {
     const qs = Q.filter(q => q.topic === t), stage = Number(qs[0].stage) || 0;
@@ -421,7 +421,7 @@ function renderProgress() {
       setTimeout(() => { b.disabled = false; b.textContent = "Sync now"; }, 120000);
     };
     const row = el("div", "actions"); row.append(b); sc.append(row, msg);
-  } else sc.append(el("p", "hint", "Syncs run automatically at 09:52 and 21:52."));
+  } else sc.append(el("p", "hint", "Syncs run automatically every night."));
 
   v.replaceChildren(tiles, hc, mc, sc);
 }

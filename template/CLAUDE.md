@@ -121,7 +121,7 @@ After each page is quizzed:
 4. Grade each answer briefly: what was right, what was missing, the correct answer. Page result = pass / shaky / fail.
 5. Update frontmatter per §5, update `## Weak spots`, append one `log.md` entry for the session with scores.
 
-### sync  (scheduled 09:52 + 21:52, or "sync quiz")
+### sync  (scheduled nightly, "Sync now" on the quiz page, or "sync quiz")
 Phone quiz page: [QUIZ_URL] (db via the ArtifactData tool).
 All logic lives in `.sync/sync.py` (scoring, ladder, weak spots, log, due topics, bank rotation, calendar, mastery stats for the Progress tab). The model only moves JSON:
 1. ArtifactData `list` on `questions`, `answers` and `stats`. If both empty AND nothing is due (`grep -l "^next_review:" -r wiki builds` dates ≤ today) → reply "Nothing due" and stop.

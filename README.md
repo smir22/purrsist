@@ -99,9 +99,10 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 | `lint the wiki` | Monthly tidy: broken links, gaps, contradictions |
 
 ### Sync
-- Runs twice a day by itself (default 09:52 and 21:52): saves your quiz results into the vault, loads newly due questions, and (evening run) adds a calendar reminder naming tomorrow's topics.
+- Runs once a night by itself (default 20:52): saves your quiz results into the vault, loads tomorrow's questions, and adds a calendar reminder naming tomorrow's topics.
 - All the logic is in `.sync/sync.py` (no AI tokens); the scheduled task only moves data. Once a run has worked, switch the task's model to **Haiku** in its settings to keep it cheap.
-- Your Mac needs to be on and awake at those times. If it's asleep, the next run catches up. Nothing is lost.
+- Want it sooner? Tap **Sync now** on the Progress tab.
+- Your Mac needs to be on and awake at sync time. If it's asleep, tap Sync now later or the next night's run catches up. Nothing is lost.
 
 ---
 

@@ -11,7 +11,7 @@ Set up the Second Brain Kit for me from https://github.com/smir22/second-brain-k
 - Where the vault should live (default: `~/Documents/Second Brain`)
 - Marking strictness: lenient / balanced / strict (default balanced)
 - Time for the daily quiz reminder (default 08:00, e.g. my commute)
-- Sync times (default 09:52 and 21:52)
+- Nightly sync time (default 20:52; it also adds the next morning's calendar reminder)
 - Calendar reminders via Google Calendar? (yes / no — if yes and the connector isn't connected, suggest it)
 
 **2. Obsidian:** check on my computer whether Obsidian is installed (macOS: `/Applications/Obsidian.app`). If not, offer to install it (`brew install --cask obsidian` if Homebrew exists, otherwise send me to https://obsidian.md/download) and wait for me.
@@ -26,7 +26,7 @@ Set up the Second Brain Kit for me from https://github.com/smir22/second-brain-k
 
 **5. Check:** run `python3 .sync/test_sync.py` in the vault. It must print `ok`.
 
-**6. Sync task:** create a scheduled task named "Second Brain quiz sync" that needs my computer, runs at my sync times in my time zone, and attaches my vault folder. Use this prompt, with my vault folder name and quiz URL filled in:
+**6. Sync task:** create a scheduled task named "Second Brain quiz sync" that needs my computer, runs once a night at my sync time in my time zone, and attaches my vault folder. Use this prompt, with my vault folder name and quiz URL filled in:
 
 > Quiz sync for my Obsidian vault. In device_bash, cd into the vault first: `cd "$HOME/mnt/<VAULT FOLDER NAME>"` (run `ls $HOME/mnt` if that fails). Follow these steps exactly and do nothing else:
 > 1. Load ArtifactData via ToolSearch. List collections `questions`, `answers` and `stats` on <QUIZ URL>.
