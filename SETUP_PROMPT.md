@@ -18,7 +18,7 @@ Set up the Second Brain Kit for me from https://github.com/smir22/second-brain-k
 
 **3. Vault:** get the kit (git clone, or download the repo ZIP), then copy the `template/` folder, including hidden `.sync/` and `.obsidian/`, to my vault location. Request access to that folder if you need it. In the copied files replace `[Your name]` with my name and `[STRICTNESS]` with my choice. Never overwrite an existing folder: if it exists, ask me.
 
-**4. Quiz page:** read `quiz/quiz.html` from the kit and publish it with the Artifact tool as a new artifact: capabilities `{"db": {}, "sample": {}}`, icon `quiz`. Then:
+**4. Quiz page:** read `quiz/quiz.html` from the kit and publish it with the Artifact tool as a new artifact: capabilities `{"db": {}, "sample": {}, "mcp": {"servers": [{"server": "Claude Code Remote", "tools": ["fire_trigger"]}]}}`, icon `quiz`. Then:
 - put its URL in place of `[QUIZ_URL]` in `CLAUDE.md`, `Home.md` and `.sync/config.json`
 - set `reminder_start` / `reminder_end` (15 min) in `.sync/config.json` to my reminder time
 - pin the artifact to my sidebar
@@ -29,8 +29,8 @@ Set up the Second Brain Kit for me from https://github.com/smir22/second-brain-k
 **6. Sync task:** create a scheduled task named "Second Brain quiz sync" that needs my computer, runs at my sync times in my time zone, and attaches my vault folder. Use this prompt, with my vault folder name and quiz URL filled in:
 
 > Quiz sync for my Obsidian vault. In device_bash, cd into the vault first: `cd "$HOME/mnt/<VAULT FOLDER NAME>"` (run `ls $HOME/mnt` if that fails). Follow these steps exactly and do nothing else:
-> 1. Load ArtifactData via ToolSearch. List collections `questions` and `answers` on <QUIZ URL>.
-> 2. Write {"questions": [rows], "answers": [rows]} to .sync/inbox.json, rows exactly as listed (id, data, version).
+> 1. Load ArtifactData via ToolSearch. List collections `questions`, `answers` and `stats` on <QUIZ URL>.
+> 2. Write {"questions": [rows], "answers": [rows], "stats": [rows]} to .sync/inbox.json, rows exactly as listed (id, data, version).
 > 3. Run: python3 .sync/sync.py . .sync/inbox.json
 > 4. For each array in the output's "batches": one ArtifactData batch call with those writes, unchanged.
 > 5. If "calendar" is not null: create a Google Calendar event (my time zone) using its title, date, start, end and description.
@@ -38,6 +38,8 @@ Set up the Second Brain Kit for me from https://github.com/smir22/second-brain-k
 > Never run git. Never edit vault files yourself — sync.py does all vault changes. If a step fails, report the error in one line and stop.
 
 If I said no to calendar reminders, leave step 5 out of that prompt.
+
+Then write the task's ID into the quiz page's database so its **Sync now** button works: ArtifactData `set` on the quiz page, collection `stats`, doc `config`, data `{"trigger_id": "<the task's trig_… id>"}`.
 
 Then run the task once now. If the run can't find the vault, tell me to add my vault folder in the task's settings and run it again. Once a run has worked, tell me I can switch the task's model to Haiku in its settings (it only moves JSON around).
 

@@ -134,14 +134,15 @@ def run(vault, inbox, now):
     # 2. Load newly due topics from their question banks.
     queued = {p for p in by_page if p not in cleared}
     cutoff = today + dt.timedelta(days=1 if now.hour >= 18 else 0)   # evening run preloads tomorrow
-    due = []
+    due, stages = [], [0] * len(WAIT)
     for folder in ("wiki", "builds"):
         for p in sorted((vault / folder).rglob("*.md")):
             rel = p.relative_to(vault).as_posix()
-            if rel in queued:
-                continue
             _, meta = read_page(p)
             if meta.get("review") != "true":
+                continue
+            stages[min(int0(meta.get("stage")), len(WAIT) - 1)] += 1
+            if rel in queued:
                 continue
             try:
                 nr = dt.date.fromisoformat(meta.get("next_review", ""))
@@ -169,6 +170,14 @@ def run(vault, inbox, now):
             writes.append({"op": "set", "collection": "questions", "doc_id": f"{slug}-{now:%Y%m%d%H}-{k}", "data": doc})
         p.write_text(set_fm(text, bank_set=n + 1))
         loaded.append(topic)
+
+    # Mastery snapshot for the quiz page's Progress tab (stage counts after this run's updates).
+    st = {r["id"]: r for r in inbox.get("stats", [])}
+    w = {"op": "set", "collection": "stats", "doc_id": "mastery",
+         "data": {"stages": stages, "total": sum(stages), "updated": now.isoformat(timespec="minutes")}}
+    if "mastery" in st:
+        w["if_version"] = st["mastery"]["version"]
+    writes.append(w)
 
     names = sorted({q["data"].get("topic", "") for q in qs.values() if q["data"].get("page") in queued} | set(loaded))
     waiting = len(names)

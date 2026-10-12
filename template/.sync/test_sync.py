@@ -55,9 +55,11 @@ with tempfile.TemporaryDirectory() as d:
     assert "- 2026-10-11: gap1\n- 2026-10-11: gap2\n\n## My notes\nmine" in text, text      # weak spots in place, My notes untouched
     writes = [w for b in out["batches"] for w in b]
     assert sum(w["op"] == "delete" for w in writes) == 6 and all(w.get("if_version") == 3 for w in writes if w["op"] == "delete")
-    sets = [w for w in writes if w["op"] == "set"]
+    sets = [w for w in writes if w["op"] == "set" and w["collection"] == "questions"]
     assert len(sets) == 3 and sets[0]["data"]["prompt"] == "q10", sets             # failed -> due tomorrow -> next bank set
     assert "bank_set: 2" in page.read_text()
+    mastery = [w for w in writes if w["collection"] == "stats"][0]
+    assert mastery["data"]["stages"][0] == 1 and mastery["data"]["total"] == 1 and "if_version" not in mastery
     assert out["calendar"]["date"] == "2026-10-12" and out["calendar"]["title"] == "Quiz: Topic A" and "Due: Topic A" in out["calendar"]["description"]
 
     # Re-running with the same inbox (db write failed last time) must not apply results twice.
@@ -69,7 +71,10 @@ with tempfile.TemporaryDirectory() as d:
 
     # Morning run, nothing answered, topic already queued -> no new sets, no calendar.
     queued = {"questions": [{"id": s["doc_id"], "version": 1, "data": s["data"]} for s in sets], "answers": []}
+    queued["stats"] = [{"id": "mastery", "version": 4, "data": {}}]
     out3 = run(v, queued, dt.datetime(2026, 10, 12, 9, 52))
-    assert out3["batches"] == [] and out3["calendar"] is None and out3["waiting_topics"] == 1
+    w3 = [w for b in out3["batches"] for w in b]
+    assert [w["collection"] for w in w3] == ["stats"] and w3[0]["if_version"] == 4   # only the mastery refresh
+    assert out3["calendar"] is None and out3["waiting_topics"] == 1
 
 print("ok")

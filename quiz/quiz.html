@@ -7,6 +7,7 @@
 :root{
   --bg:#21222c; --surface:#282a36; --ink:#f8f8f2; --muted:#a4abcf; --line:#44475a;
   --accent:#bd93f9; --accent-soft:#3a3352; --on-accent:#21222c; --pink:#ff79c6; --cyan:#8be9fd;
+  --heat1:#4b3e6b; --heat2:#7d65ab; --yellow:#f1fa8c;
   --good:#50fa7b; --good-soft:#243b2c; --warn:#ffb86c; --warn-soft:#3e3324; --bad:#ff5555; --bad-soft:#42262b;
   --display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
   --body:"IBM Plex Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
@@ -63,6 +64,25 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
 .mode{display:flex;gap:4px;align-self:flex-start;background:var(--line);padding:3px;border-radius:9px}
 .mode button{min-height:32px;padding:6px 10px;border:0;border-radius:7px;background:transparent;font-size:.8rem;color:var(--muted);text-align:center}
 .mode button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600}
+.view{display:flex;flex-direction:column;gap:16px}
+.tabs{align-self:stretch}.tabs button{flex:1}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.tile b{font:700 1.5rem/1 var(--display);font-variant-numeric:tabular-nums}
+.tile small{color:var(--muted);font-size:.74rem;line-height:1.3}
+.tile .lbl{font:500 .66rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.xpbar{height:4px;background:var(--line);border-radius:2px;overflow:hidden}.xpbar i{display:block;height:100%;background:var(--accent)}
+.heat{display:grid;grid-template-rows:repeat(7,1fr);grid-auto-flow:column;grid-auto-columns:1fr;gap:3px}
+.heat span{aspect-ratio:1;border-radius:3px;background:var(--line)}
+.heat .h1{background:var(--heat1)}.heat .h2{background:var(--heat2)}.heat .h3{background:var(--accent)}.heat .fut{background:transparent}
+.heat .today{outline:1.5px solid var(--cyan);outline-offset:1px}
+.legend{display:flex;gap:4px;align-items:center;justify-content:flex-end;font-size:.72rem;color:var(--muted)}
+.legend span{width:10px;height:10px;border-radius:2px;background:var(--line)}
+.mbar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--line)}
+.mbar i{display:block;height:100%}
+.mkeys{display:flex;flex-wrap:wrap;gap:6px 14px;font:500 .72rem/1.4 var(--mono);color:var(--muted)}
+.mkeys span{display:inline-flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums}.mkeys i{width:8px;height:8px;border-radius:2px;display:inline-block}
+.card h2.small{font:600 1rem/1.3 var(--display);margin:0}
 .empty h2{font:600 1.15rem/1.3 var(--display);margin:0}
 .empty p{margin:0;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
@@ -73,6 +93,12 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
     <h1>Second Brain Quiz</h1>
     <p class="sub" id="sub">Loading your questions…</p>
     <div class="bar" aria-hidden="true"><i id="prog"></i></div>
+    <div class="mode tabs" id="tabs" role="tablist" aria-label="View">
+      <button type="button" data-t="quiz">Quiz</button>
+      <button type="button" data-t="progress">Progress</button>
+    </div>
+  </header>
+  <div id="quizView" class="view">
     <div class="mode" id="style" role="group" aria-label="How you answer">
       <button type="button" data-s="tap">Tap answers</button>
       <button type="button" data-s="write">Write answers</button>
@@ -82,13 +108,14 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
       <button type="button" data-m="balanced">Balanced</button>
       <button type="button" data-m="strict">Strict</button>
     </div>
-  </header>
   <main id="main">
     <section class="card empty">
       <h2>Waiting for today's questions</h2>
       <p>Questions load from your vault at 09:52 and 21:52. Answers sync back to your vault at the same times.</p>
     </section>
   </main>
+  </div>
+  <section id="progressView" class="view" hidden></section>
 </div>
 
 <script>
@@ -280,19 +307,153 @@ async function save(q, data) {
   A.set(q.id, data); lastKey = ""; render();              // show feedback straight away
   try {
     await db.collection("answers").doc(q.id).set({ ...data, topic: q.topic, page: q.page || "", kind: q.kind, at: new Date().toISOString() });
+    logDay(data.verdict, Number(q.stage) || 0);
   } catch (e) {
     A.delete(q.id); shownId = null; lastKey = ""; render();
     document.getElementById("sub").textContent = e?.code === "quota_exceeded" ? "Storage full. Ask Claude to sync your vault." : "Couldn't save that answer. Check your signal and try again.";
   }
 }
 
+// ---------- Progress: activity heatmap, streak, XP, mastery, sync now ----------
+const XP = { correct: 10, partial: 5, wrong: 2 };          // × (1 + 0.5 × stage): late recall is worth more
+const STAGE_COLORS = ["var(--bad)", "var(--warn)", "var(--yellow)", "var(--cyan)", "var(--accent)", "var(--pink)", "var(--good)"];
+let ACT = {}, actLoaded = false, STATS = {}, mcp = null, tab = "quiz", writeChain = Promise.resolve(), checkedToday = false;
+const pad = n => String(n).padStart(2, "0");
+const dkey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const weekKey = d => dkey(addDays(d, -((d.getDay() + 6) % 7)));
+const dayOf = d => ACT[dkey(d).slice(0, 7)]?.days?.[pad(d.getDate())] || null;
+const activeOn = d => { const x = dayOf(d); return !!x && (x.n > 0 || x.checked); };
+
+// One activity doc per month; update() merges only today's entry, so other days are never overwritten.
+function writeDay(patch) {
+  const now = new Date(), mk = dkey(now).slice(0, 7), dd = pad(now.getDate());
+  const cur = { n: 0, c: 0, p: 0, w: 0, xp: 0, ...(dayOf(now) || {}) };
+  const next = patch(cur);
+  ACT[mk] = { days: { ...(ACT[mk]?.days || {}), [dd]: next } };
+  if (tab === "progress") renderProgress();
+  writeChain = writeChain.then(async () => {
+    const ref = db.collection("activity").doc(mk);
+    try { await ref.update({ days: { [dd]: next } }); }
+    catch (e) { if (e?.code === "invalid_argument") { try { await ref.set({ days: { [dd]: next } }); } catch (_) {} } }
+  });
+}
+function logDay(verdict, stage) {
+  writeDay(c => ({ ...c, n: c.n + 1, [verdict[0]]: (c[verdict[0]] || 0) + 1, xp: c.xp + Math.round((XP[verdict] || 0) * (1 + 0.5 * stage)) }));
+}
+function markChecked() {          // opening the quiz on a day with nothing due still keeps the streak
+  if (checkedToday || !actLoaded) return;
+  checkedToday = true;
+  if (!activeOn(new Date())) writeDay(c => ({ ...c, checked: true }));
+}
+function streak() {               // 1 automatic freeze per week covers one missed day
+  let d = new Date(), s = 0;
+  const used = new Set();
+  if (!activeOn(d)) d = addDays(d, -1);
+  for (let i = 0; i < 400; i++, d = addDays(d, -1)) {
+    if (activeOn(d)) s++;
+    else if (!used.has(weekKey(d))) used.add(weekKey(d));
+    else break;
+  }
+  return { s, freezeLeft: !used.has(weekKey(new Date())) };
+}
+function totals() {
+  let xp = 0, n = 0;
+  for (const m of Object.values(ACT)) for (const v of Object.values(m.days || {})) { xp += v.xp || 0; n += v.n || 0; }
+  const level = Math.floor(Math.sqrt(xp / 50)) + 1, lo = 50 * (level - 1) ** 2, hi = 50 * level ** 2;
+  return { xp, n, level, pct: (xp - lo) / (hi - lo), toNext: hi - xp };
+}
+function tile(label, big, small, extra) {
+  const t = el("div", "tile"); t.append(el("span", "lbl", label), el("b", null, big));
+  if (extra) t.append(extra);
+  t.append(el("small", null, small)); return t;
+}
+function renderProgress() {
+  const v = document.getElementById("progressView"), { s, freezeLeft } = streak(), T = totals();
+  const ms = STATS.mastery, stages = ms?.stages || [], total = ms?.total || 0, mastered = stages.slice(4).reduce((a, b) => a + b, 0);
+  const xpb = el("div", "xpbar"); const xi = el("i"); xi.style.width = Math.round(T.pct * 100) + "%"; xpb.append(xi);
+  const tiles = el("div", "tiles");
+  tiles.append(tile("Streak", `${s}d`, freezeLeft ? "Freeze ready this week" : "Freeze used this week"),
+    tile("Level", String(T.level), `${T.xp} XP · ${T.toNext} to next`, xpb),
+    tile("Mastered", ms ? `${mastered}/${total}` : "–", "Topics at the 31-day step or above"));
+
+  // Heatmap: last 20 weeks, Monday rows first, today outlined
+  const heat = el("div", "heat"), today = new Date(), start = addDays(today, -((today.getDay() + 6) % 7) - 19 * 7);
+  for (let i = 0; i < 140; i++) {
+    const d = addDays(start, i), x = dayOf(d), n = x?.n || 0, sp = el("span");
+    if (d > today) sp.className = "fut";
+    else sp.className = n >= 7 ? "h3" : n >= 4 ? "h2" : (n > 0 || x?.checked) ? "h1" : "";
+    if (dkey(d) === dkey(today)) sp.classList.add("today");
+    sp.title = `${d.toLocaleDateString(undefined, { day: "numeric", month: "short" })}: ${n} answer${n === 1 ? "" : "s"}${x?.xp ? `, ${x.xp} XP` : ""}`;
+    heat.append(sp);
+  }
+  const legend = el("div", "legend"); legend.append(el("small", null, "Less"));
+  ["", "h1", "h2", "h3"].forEach(c => { const sw = el("span"); if (c) sw.style.background = `var(--${c === "h3" ? "accent" : c === "h2" ? "heat2" : "heat1"})`; legend.append(sw); });
+  legend.append(el("small", null, "More"));
+  const hc = el("section", "card"); hc.append(el("h2", "small", "Activity"), heat, legend);
+
+  // Mastery: topics per ladder step (from the last sync)
+  const mc = el("section", "card"); mc.append(el("h2", "small", "Mastery"));
+  if (ms && total) {
+    const bar = el("div", "mbar"), keys = el("div", "mkeys");
+    stages.forEach((c, i) => {
+      if (c) { const seg = el("i"); seg.style.width = (c / total * 100) + "%"; seg.style.background = STAGE_COLORS[i]; seg.title = `${WAIT[i]}d: ${c}`; bar.append(seg); }
+      const k = el("span"); const dot = el("i"); dot.style.background = STAGE_COLORS[i]; k.append(dot, `${WAIT[i]}d ${c}`); keys.append(k);
+    });
+    mc.append(bar, keys, el("p", "hint", `${total} topics · updated ${String(ms.updated || "").replace("T", " ")}`));
+  } else mc.append(el("p", "hint", "Appears after the next sync."));
+
+  // Sync now (fires the scheduled sync task; needs the Mac awake)
+  const sc = el("section", "card"); sc.append(el("h2", "small", "Sync"));
+  const trig = STATS.config?.trigger_id;
+  if (mcp && trig) {
+    const b = el("button", "primary", "Sync now"), msg = el("p", "hint", "Saves your answers into the vault and loads anything newly due. Your Mac needs to be awake.");
+    b.onclick = async () => {
+      b.disabled = true; b.textContent = "Starting…";
+      try {
+        await mcp.callTool("Claude Code Remote", "fire_trigger", { trigger_id: trig }, { cache: false });
+        b.textContent = "Sync started"; msg.textContent = "Results land in a minute or two. If your Mac is asleep, the next scheduled sync catches up.";
+      } catch (e) {
+        b.textContent = "Sync now"; b.disabled = false;
+        msg.textContent = e?.code === "not_in_manifest" ? "Sync isn't allowed for this page. Turn it on in the page's permissions." :
+          e?.code === "server_not_connected" ? "Connect Claude Code Remote in Settings → Connectors to sync from here." : "Couldn't start the sync. The scheduled sync will run as normal.";
+      }
+      setTimeout(() => { b.disabled = false; b.textContent = "Sync now"; }, 120000);
+    };
+    const row = el("div", "actions"); row.append(b); sc.append(row, msg);
+  } else sc.append(el("p", "hint", "Syncs run automatically at 09:52 and 21:52."));
+
+  v.replaceChildren(tiles, hc, mc, sc);
+}
+const tabBtns = document.querySelectorAll("#tabs button");
+function showTab(t) {
+  tab = t;
+  tabBtns.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.t === t)));
+  document.getElementById("quizView").hidden = t !== "quiz";
+  document.getElementById("progressView").hidden = t !== "progress";
+  if (t === "progress") renderProgress();
+}
+tabBtns.forEach(b => b.onclick = () => showTab(b.dataset.t));
+showTab("quiz");
+
 async function boot() {
   if (!window.claude?.use) return;
   db = await claude.use("db");
   if (!db) { document.getElementById("sub").textContent = "Open this page in Claude to load your questions."; return; }
   claude.use("sample").then(s => { sample = s; });
+  claude.use("mcp").then(m => { mcp = m; if (tab === "progress") renderProgress(); });
   const fail = () => { document.getElementById("sub").textContent = "Lost connection. Reopen the page to reload."; };
-  db.collection("questions").orderBy("order").onSnapshot(s => { Q = s.docs.map(d => ({ id: d.id, ...d.data() })); render(); }, fail);
+  let qSeen = false;
+  db.collection("activity").onSnapshot(s => {
+    ACT = Object.fromEntries(s.docs.map(d => [d.id, d.data()])); actLoaded = true;
+    if (qSeen && !Q.length) markChecked();
+    if (tab === "progress") renderProgress();
+  }, () => {});
+  db.collection("stats").onSnapshot(s => { STATS = Object.fromEntries(s.docs.map(d => [d.id, d.data()])); if (tab === "progress") renderProgress(); }, () => {});
+  db.collection("questions").orderBy("order").onSnapshot(s => {
+    Q = s.docs.map(d => ({ id: d.id, ...d.data() })); render();
+    if (!s.metadata?.fromCache) { qSeen = true; if (!Q.length) markChecked(); }
+  }, fail);
   db.collection("answers").onSnapshot(s => {
     const m = new Map(s.docs.map(d => [d.id, d.data()]));
     for (const [k, v] of A) if (!m.has(k) && k === shownId) m.set(k, v);   // keep local feedback until the write lands

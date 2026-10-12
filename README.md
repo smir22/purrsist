@@ -10,7 +10,10 @@ Built on Karpathy's "LLM wiki" idea and the CoderCo *Learn it so it sticks* meth
   <img src="docs/screenshots/3-written.png" width="23%" alt="Written answer marked by Claude: what you got, what's missing, model answer and a tip">
   <img src="docs/screenshots/4-results.png" width="23%" alt="Results screen showing where each topic moves on the ladder">
 </p>
-<p align="center"><sub>Phone quiz: tap answers · instant feedback · optional written answers marked by Claude · where each topic moves next</sub></p>
+<p align="center">
+  <img src="docs/screenshots/5-progress.png" width="30%" alt="Progress tab: streak, level and XP, activity heatmap, mastery by ladder step, Sync now">
+</p>
+<p align="center"><sub>Phone quiz: tap answers · instant feedback · optional written answers marked by Claude · where each topic moves next · Progress tab (example data)</sub></p>
 
 ---
 
@@ -70,6 +73,13 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 - **Strictness:** Lenient / Balanced / Strict (shows in Write mode).
 - **Done screen:** shows where each topic moves on the ladder.
 - Nothing to do? It says so. New questions load at the next sync.
+
+### Progress tab (phone)
+- **Streak:** days in a row you answered (or opened the quiz when nothing was due). One missed day a week is covered by an automatic freeze.
+- **Level & XP:** correct 10, partly 5, wrong 2 (for showing up), multiplied by the topic's ladder step, so remembering something after 31 days is worth more than after 1.
+- **Activity heatmap:** last 20 weeks, GitHub style.
+- **Mastery:** how many topics sit at each step of the ladder. "Mastered" = 31 days or more. This is the number that actually means you've learned it.
+- **Sync now:** saves your answers into the vault straight away instead of waiting for the schedule (your Mac needs to be awake). The first tap asks permission to use the Claude Code Remote connector.
 
 ### Notes (Mac, Obsidian)
 - Open Obsidian → your vault. Each topic page shows its stage, next review date and **Weak spots**.

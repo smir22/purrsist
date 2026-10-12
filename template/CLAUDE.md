@@ -123,9 +123,9 @@ After each page is quizzed:
 
 ### sync  (scheduled 09:52 + 21:52, or "sync quiz")
 Phone quiz page: [QUIZ_URL] (db via the ArtifactData tool).
-All logic lives in `.sync/sync.py` (scoring, ladder, weak spots, log, due topics, bank rotation, calendar). The model only moves JSON:
-1. ArtifactData `list` on `questions` and `answers`. If both empty AND nothing is due (`grep -l "^next_review:" -r wiki builds` dates ≤ today) → reply "Nothing due" and stop.
-2. Write `{"questions": [rows], "answers": [rows]}` (rows exactly as listed: id, data, version) to `.sync/inbox.json`.
+All logic lives in `.sync/sync.py` (scoring, ladder, weak spots, log, due topics, bank rotation, calendar, mastery stats for the Progress tab). The model only moves JSON:
+1. ArtifactData `list` on `questions`, `answers` and `stats`. If both empty AND nothing is due (`grep -l "^next_review:" -r wiki builds` dates ≤ today) → reply "Nothing due" and stop.
+2. Write `{"questions": [rows], "answers": [rows], "stats": [rows]}` (rows exactly as listed: id, data, version) to `.sync/inbox.json`.
 3. `python3 .sync/sync.py . .sync/inbox.json` → JSON out.
 4. Each entry in `batches` → one ArtifactData `batch` call, passed as-is.
 5. `calendar` not null → Google Calendar create_event (Europe/London) with its title/date/start/end/description.
