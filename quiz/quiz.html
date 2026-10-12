@@ -3,22 +3,16 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
 /* Layout: one narrow column, one question card at a time, thumb-reach actions at the bottom of the card */
+/* Dracula palette, deliberately dark-only (user's choice) */
 :root{
-  --bg:#f3f5f8; --surface:#ffffff; --ink:#151a24; --muted:#5d6676; --line:#dfe3ea;
-  --accent:#2747c9; --accent-soft:#e6ebfb; --on-accent:#ffffff;
-  --good:#1d7a4d; --good-soft:#e3f3ea; --warn:#9a6200; --warn-soft:#fbf0db; --bad:#b3261e; --bad-soft:#fbe6e4;
+  --bg:#21222c; --surface:#282a36; --ink:#f8f8f2; --muted:#a4abcf; --line:#44475a;
+  --accent:#bd93f9; --accent-soft:#3a3352; --on-accent:#21222c; --pink:#ff79c6; --cyan:#8be9fd;
+  --good:#50fa7b; --good-soft:#243b2c; --warn:#ffb86c; --warn-soft:#3e3324; --bad:#ff5555; --bad-soft:#42262b;
   --display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
   --body:"IBM Plex Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
   --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme:dark;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0f1218; --surface:#181c25; --ink:#e8ebf1; --muted:#9aa3b3; --line:#2a303c;
-  --accent:#8ea2ff; --accent-soft:#1f2747; --on-accent:#0f1218;
-  --good:#5fcf98; --good-soft:#15291f; --warn:#e7b25a; --warn-soft:#2c2414; --bad:#f08a80; --bad-soft:#321a18; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#0f1218; --surface:#181c25; --ink:#e8ebf1; --muted:#9aa3b3; --line:#2a303c;
-  --accent:#8ea2ff; --accent-soft:#1f2747; --on-accent:#0f1218;
-  --good:#5fcf98; --good-soft:#15291f; --warn:#e7b25a; --warn-soft:#2c2414; --bad:#f08a80; --bad-soft:#321a18; color-scheme:dark}
 html,body{background:var(--bg)}
 body{color:var(--ink);font:16px/1.5 var(--body);padding-inline:16px;padding-block:20px 40px}
 .wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
@@ -29,13 +23,13 @@ h1{font:700 1.6rem/1.1 var(--display);margin:0;text-wrap:balance;letter-spacing:
 .bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
 .meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.chip{font:500 .72rem/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:6px 8px;border-radius:6px;background:var(--accent-soft);color:var(--accent)}
+.chip{font:500 .72rem/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:6px 8px;border-radius:6px;background:var(--accent-soft);color:var(--pink)}
 .chip.plain{background:transparent;color:var(--muted);padding-inline:0}
 .topic{font:600 1.05rem/1.3 var(--display);margin:0}
 .ladder{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
 .ladder span{font:500 .62rem/1 var(--mono);color:var(--muted);text-align:center;padding-top:7px;border-top:3px solid var(--line);font-variant-numeric:tabular-nums}
 .ladder span.done{border-color:var(--accent);opacity:.55}
-.ladder span.now{border-color:var(--accent);color:var(--accent)}
+.ladder span.now{border-color:var(--cyan);color:var(--cyan)}
 .prompt{font-size:1.08rem;line-height:1.5;margin:0;white-space:pre-wrap}
 .opts{display:flex;flex-direction:column;gap:8px}
 button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:12px 14px;text-align:left;min-height:48px}
