@@ -79,7 +79,11 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
     <h1>Second Brain Quiz</h1>
     <p class="sub" id="sub">Loading your questions…</p>
     <div class="bar" aria-hidden="true"><i id="prog"></i></div>
-    <div class="mode" id="mode" role="group" aria-label="How strictly Claude marks written answers">
+    <div class="mode" id="style" role="group" aria-label="How you answer">
+      <button type="button" data-s="tap">Tap answers</button>
+      <button type="button" data-s="write">Write answers</button>
+    </div>
+    <div class="mode" id="mode" role="group" aria-label="How strictly Claude marks written answers" hidden>
       <button type="button" data-m="lenient">Lenient</button>
       <button type="button" data-m="balanced">Balanced</button>
       <button type="button" data-m="strict">Strict</button>
@@ -150,7 +154,8 @@ function questionCard(q) {
   const a = A.get(q.id);
   if (shownId === q.id && a) { c.append(feedback(q, a)); return c; }
 
-  if (Array.isArray(q.options) && q.options.length) {
+  const hasOpts = Array.isArray(q.options) && q.options.length;
+  if (hasOpts && (style === "tap" || q.kind === "recall")) {   // written mode: why/apply/teach get a text box
     const opts = el("div", "opts");
     q.options.forEach((o, i) => {
       const b = el("button", null, o);
@@ -219,6 +224,18 @@ const modeBtns = document.querySelectorAll("#mode button");
 const showMode = () => modeBtns.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.m === mode)));
 modeBtns.forEach(b => b.onclick = () => { mode = b.dataset.m; showMode(); try { localStorage.setItem("mark-mode", mode); } catch (e) {} });
 showMode();
+let style = "tap";                       // default: multiple choice only, no typing
+try { if (localStorage.getItem("answer-style") === "write") style = "write"; } catch (e) {}
+const styleBtns = document.querySelectorAll("#style button");
+const showStyle = () => {
+  styleBtns.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.s === style)));
+  document.getElementById("mode").hidden = style !== "write";   // strictness only matters when Claude marks writing
+};
+styleBtns.forEach(b => b.onclick = () => {
+  style = b.dataset.s; showStyle(); lastKey = ""; render();
+  try { localStorage.setItem("answer-style", style); } catch (e) {}
+});
+showStyle();
 const arr = x => Array.isArray(x) ? x.map(String).slice(0, 6) : [];
 
 function selfGradeBlock(q, _) {
@@ -238,7 +255,7 @@ function selfGradeBlock(q, _) {
 function feedback(q, a) {
   const f = el("div", "fb");
   f.append(el("span", "verdict v-" + a.verdict, { correct: "Correct", partial: "Partly right", wrong: "Not yet" }[a.verdict]));
-  if (a.response && !(Array.isArray(q.options) && q.options.length)) f.append(el("h3", null, "Your answer"), el("p", "mine", a.response));
+  if (a.response && !(Array.isArray(q.options) && q.options.includes(a.response))) f.append(el("h3", null, "Your answer"), el("p", "mine", a.response));
   const list = (title, items) => { if (!items?.length) return; const u = el("ul"); items.forEach(t => u.append(el("li", null, t))); f.append(el("h3", null, title), u); };
   list("You got", a.right); list("Missing", a.missing);
   f.append(el("h3", null, "Model answer"), el("p", null, q.answer || ""));

@@ -42,9 +42,8 @@ Keep a tally: fixed vs still shaky.
 - Never touch `raw/`, pages with an `owner:` field, or `## My notes`.
 
 **Question bank:** `## Question bank` + a ```json block, 3 sets of `[recall, apply, teach]`:
-- recall: `{kind:'recall', prompt, options:[4], correct:<index>, answer, points}`
-- apply: realistic prod / interview / design scenario, answerable in 1–3 spoken sentences
-- teach: "Explain X to a junior…"
+- every question: `{kind, prompt, options:[4], correct:<index>, answer, points}`. The quiz is tap-only by default, so all three kinds need options (vary the correct position); `answer`/`points` serve the optional written mode
+- recall: key fact · apply: realistic prod / interview / design scenario · teach: "Explain X to a junior…" (as MCQ: which explanation is right)
 - `points[0]` = core idea. **Set 1 targets the still-shaky gaps**, then the other gaps, then the rest. Validate the JSON loads (3×3).
 - Pure facts (ports, flags, vocab) → also `anki/new-cards.txt`.
 

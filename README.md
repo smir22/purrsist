@@ -51,10 +51,10 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 
 ### Quiz (phone)
 - **Open it:** tap the link in the 08:00 calendar event, or the pinned page in the Claude app sidebar. Tip: open it in Safari (signed in to claude.ai) → Share → **Add to Home Screen** for one-tap access, like an app.
-- **Multiple choice:** tap an answer.
-- **Written answers:** type, or tap the keyboard mic and talk. Claude marks it and shows what you got, what's missing, the model answer and a tip.
+- **Tap answers (default):** every question is multiple choice. No typing, works one-handed.
+- **Write answers (optional):** switch at the top. Why / apply / teach questions become a text box: type, or tap the keyboard mic and talk. Claude marks it and shows what you got, what's missing, the model answer and a tip.
 - **First written answer:** the page asks permission to use Claude for marking. Allow it (it uses your normal Claude usage; multiple choice uses none).
-- **Strictness:** Lenient / Balanced / Strict switch at the top.
+- **Strictness:** Lenient / Balanced / Strict (shows in Write mode).
 - **Done screen:** shows where each topic moves on the ladder.
 - Nothing to do? It says so. New questions load at the next sync.
 
