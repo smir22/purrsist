@@ -3,17 +3,62 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
 /* Layout: one narrow column, one question card at a time, thumb-reach actions at the bottom of the card */
-/* Dracula palette, deliberately dark-only (user's choice) */
+/* Themes: each sets base colours on <html data-skin>; soft/heat shades are derived. Default = Dracula. */
 :root{
   --bg:#21222c; --surface:#282a36; --ink:#f8f8f2; --muted:#a4abcf; --line:#44475a;
-  --accent:#bd93f9; --accent-soft:#3a3352; --on-accent:#21222c; --pink:#ff79c6; --cyan:#8be9fd;
-  --heat1:#4b3e6b; --heat2:#7d65ab; --yellow:#f1fa8c;
-  --good:#50fa7b; --good-soft:#243b2c; --warn:#ffb86c; --warn-soft:#3e3324; --bad:#ff5555; --bad-soft:#42262b;
+  --accent:#bd93f9; --on-accent:#21222c; --pink:#ff79c6; --cyan:#8be9fd; --yellow:#f1fa8c;
+  --good:#50fa7b; --warn:#ffb86c; --bad:#ff5555;
+  --accent-soft:color-mix(in srgb, var(--accent) 20%, var(--surface));
+  --good-soft:color-mix(in srgb, var(--good) 16%, var(--surface));
+  --warn-soft:color-mix(in srgb, var(--warn) 16%, var(--surface));
+  --bad-soft:color-mix(in srgb, var(--bad) 16%, var(--surface));
+  --heat1:color-mix(in srgb, var(--accent) 35%, var(--line));
+  --heat2:color-mix(in srgb, var(--accent) 65%, var(--line));
   --display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
   --body:"IBM Plex Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
   --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
   color-scheme:dark;
 }
+:root[data-skin="alucard"]{ /* Dracula's official light theme */
+  --bg:#f5f1e3; --surface:#fffbeb; --ink:#1f1f1f; --muted:#635d97; --line:#cfcfde;
+  --accent:#644ac9; --on-accent:#fffbeb; --pink:#a3144d; --cyan:#036a96; --yellow:#846e15;
+  --good:#14710a; --warn:#a34d14; --bad:#cb3a2a; color-scheme:light }
+:root[data-skin="light"]{
+  --bg:#f4f5f8; --surface:#ffffff; --ink:#1b1f24; --muted:#5b6474; --line:#dde1e7;
+  --accent:#3b5bdb; --on-accent:#ffffff; --pink:#c2255c; --cyan:#0b7285; --yellow:#946200;
+  --good:#2b8a3e; --warn:#b35c00; --bad:#c92a2a; color-scheme:light }
+:root[data-skin="dark"]{
+  --bg:#141619; --surface:#1d2025; --ink:#e8eaed; --muted:#9aa1ad; --line:#30343b;
+  --accent:#8ea2ff; --on-accent:#141619; --pink:#f783ac; --cyan:#66d9e8; --yellow:#ffe066;
+  --good:#69db7c; --warn:#ffa94d; --bad:#ff6b6b; color-scheme:dark }
+:root[data-skin="one-dark"]{
+  --bg:#21252b; --surface:#282c34; --ink:#dcdfe4; --muted:#9da5b4; --line:#3e4451;
+  --accent:#61afef; --on-accent:#21252b; --pink:#c678dd; --cyan:#56b6c2; --yellow:#e5c07b;
+  --good:#98c379; --warn:#d19a66; --bad:#e06c75; color-scheme:dark }
+:root[data-skin="github-dark"]{
+  --bg:#0d1117; --surface:#161b22; --ink:#e6edf3; --muted:#8d96a0; --line:#30363d;
+  --accent:#58a6ff; --on-accent:#0d1117; --pink:#db61a2; --cyan:#39c5cf; --yellow:#e3b341;
+  --good:#3fb950; --warn:#d29922; --bad:#f85149; color-scheme:dark }
+:root[data-skin="github-light"]{
+  --bg:#f6f8fa; --surface:#ffffff; --ink:#1f2328; --muted:#59636e; --line:#d0d7de;
+  --accent:#0969da; --on-accent:#ffffff; --pink:#bf3989; --cyan:#1b7c83; --yellow:#9a6700;
+  --good:#1a7f37; --warn:#bc4c00; --bad:#cf222e; color-scheme:light }
+:root[data-skin="nord"]{
+  --bg:#2e3440; --surface:#3b4252; --ink:#eceff4; --muted:#b4bccc; --line:#4c566a;
+  --accent:#88c0d0; --on-accent:#2e3440; --pink:#b48ead; --cyan:#8fbcbb; --yellow:#ebcb8b;
+  --good:#a3be8c; --warn:#d08770; --bad:#bf616a; color-scheme:dark }
+:root[data-skin="tokyo-night"]{
+  --bg:#16161e; --surface:#1a1b26; --ink:#c0caf5; --muted:#9aa5ce; --line:#292e42;
+  --accent:#7aa2f7; --on-accent:#16161e; --pink:#bb9af7; --cyan:#7dcfff; --yellow:#e0af68;
+  --good:#9ece6a; --warn:#ff9e64; --bad:#f7768e; color-scheme:dark }
+:root[data-skin="catppuccin"]{ /* Mocha */
+  --bg:#181825; --surface:#1e1e2e; --ink:#cdd6f4; --muted:#a6adc8; --line:#313244;
+  --accent:#cba6f7; --on-accent:#181825; --pink:#f5c2e7; --cyan:#89dceb; --yellow:#f9e2af;
+  --good:#a6e3a1; --warn:#fab387; --bad:#f38ba8; color-scheme:dark }
+:root[data-skin="solarized-light"]{
+  --bg:#eee8d5; --surface:#fdf6e3; --ink:#073642; --muted:#586e75; --line:#d9d2bf;
+  --accent:#268bd2; --on-accent:#fdf6e3; --pink:#d33682; --cyan:#2aa198; --yellow:#b58900;
+  --good:#859900; --warn:#cb4b16; --bad:#dc322f; color-scheme:light }
 html,body{background:var(--bg)}
 body{color:var(--ink);font:16px/1.5 var(--body);padding-inline:16px;padding-block:20px 40px}
 .wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
@@ -65,6 +110,12 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
 .mode button{min-height:32px;padding:6px 10px;border:0;border-radius:7px;background:transparent;font-size:.8rem;color:var(--muted);text-align:center}
 .mode button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600}
 .view{display:flex;flex-direction:column;gap:16px}
+.skins{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.skin{display:flex;flex-direction:column;gap:8px;padding:10px;text-align:left}
+.skin[aria-checked="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.skin .sw{display:flex;height:22px;border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+.skin .sw i{flex:1}
+.skin span{font-size:.85rem;font-weight:500}
 .tabs{align-self:stretch}.tabs button{flex:1}
 .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;min-width:0}
@@ -96,6 +147,7 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
     <div class="mode tabs" id="tabs" role="tablist" aria-label="View">
       <button type="button" data-t="quiz">Quiz</button>
       <button type="button" data-t="progress">Progress</button>
+      <button type="button" data-t="settings">Settings</button>
     </div>
   </header>
   <div id="quizView" class="view">
@@ -116,6 +168,13 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
   </main>
   </div>
   <section id="progressView" class="view" hidden></section>
+  <section id="settingsView" class="view" hidden>
+    <section class="card">
+      <h2 class="small">Theme</h2>
+      <div class="skins" id="skins" role="radiogroup" aria-label="Theme"></div>
+      <p class="hint">Saved on this device.</p>
+    </section>
+  </section>
 </div>
 
 <script>
@@ -429,10 +488,43 @@ const tabBtns = document.querySelectorAll("#tabs button");
 function showTab(t) {
   tab = t;
   tabBtns.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.t === t)));
-  document.getElementById("quizView").hidden = t !== "quiz";
-  document.getElementById("progressView").hidden = t !== "progress";
+  for (const v of ["quiz", "progress", "settings"]) document.getElementById(v + "View").hidden = t !== v;
   if (t === "progress") renderProgress();
 }
+
+// ---------- Themes (per device) ----------
+const SKINS = [   // [id, name, swatches: bg, surface, accent, pink, good]
+  ["dracula", "Dracula", "#21222c #282a36 #bd93f9 #ff79c6 #50fa7b"],
+  ["alucard", "Dracula Light", "#f5f1e3 #fffbeb #644ac9 #a3144d #14710a"],
+  ["system", "Match phone", "#f4f5f8 #ffffff #141619 #1d2025 #3b5bdb"],
+  ["light", "Light", "#f4f5f8 #ffffff #3b5bdb #c2255c #2b8a3e"],
+  ["dark", "Dark", "#141619 #1d2025 #8ea2ff #f783ac #69db7c"],
+  ["one-dark", "One Dark Pro", "#21252b #282c34 #61afef #c678dd #98c379"],
+  ["github-dark", "GitHub Dark", "#0d1117 #161b22 #58a6ff #db61a2 #3fb950"],
+  ["github-light", "GitHub Light", "#f6f8fa #ffffff #0969da #bf3989 #1a7f37"],
+  ["tokyo-night", "Tokyo Night", "#16161e #1a1b26 #7aa2f7 #bb9af7 #9ece6a"],
+  ["catppuccin", "Catppuccin Mocha", "#181825 #1e1e2e #cba6f7 #f5c2e7 #a6e3a1"],
+  ["nord", "Nord", "#2e3440 #3b4252 #88c0d0 #b48ead #a3be8c"],
+  ["solarized-light", "Solarized Light", "#eee8d5 #fdf6e3 #268bd2 #d33682 #859900"],
+];
+const darkMQ = matchMedia("(prefers-color-scheme: dark)");
+let skin = "dracula";
+try { const s = localStorage.getItem("skin"); if (SKINS.some(k => k[0] === s)) skin = s; } catch (e) {}
+function applySkin() {
+  const eff = skin === "system" ? (darkMQ.matches ? "dark" : "light") : skin;
+  if (eff === "dracula") delete document.documentElement.dataset.skin; else document.documentElement.dataset.skin = eff;
+  document.querySelectorAll(".skin").forEach(b => b.setAttribute("aria-checked", String(b.dataset.k === skin)));
+}
+const skinsBox = document.getElementById("skins");
+for (const [k, name, cols] of SKINS) {
+  const b = el("button", "skin"); b.type = "button"; b.dataset.k = k; b.setAttribute("role", "radio");
+  const sw = el("div", "sw"); cols.split(" ").forEach(c => { const i = el("i"); i.style.background = c; sw.append(i); });
+  b.append(sw, el("span", null, name));
+  b.onclick = () => { skin = k; applySkin(); try { localStorage.setItem("skin", k); } catch (e) {} };
+  skinsBox.append(b);
+}
+darkMQ.addEventListener?.("change", () => { if (skin === "system") applySkin(); });
+applySkin();
 tabBtns.forEach(b => b.onclick = () => showTab(b.dataset.t));
 showTab("quiz");
 

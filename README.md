@@ -12,6 +12,7 @@ Built on Karpathy's "LLM wiki" idea and the CoderCo *Learn it so it sticks* meth
 </p>
 <p align="center">
   <img src="docs/screenshots/5-progress.png" width="30%" alt="Progress tab: streak, level and XP, activity heatmap, mastery by ladder step, Sync now">
+  <img src="docs/screenshots/6-settings.png" width="30%" alt="Settings tab: theme picker with Dracula, Dracula Light, GitHub, Tokyo Night, Catppuccin, Nord and more">
 </p>
 <p align="center"><sub>Phone quiz: tap answers · instant feedback · optional written answers marked by Claude · where each topic moves next · Progress tab (example data)</sub></p>
 
@@ -80,6 +81,9 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 - **Activity heatmap:** last 20 weeks, GitHub style.
 - **Mastery:** how many topics sit at each step of the ladder. "Mastered" = 31 days or more. This is the number that actually means you've learned it.
 - **Sync now:** saves your answers into the vault straight away instead of waiting for the schedule (your Mac needs to be awake). The first tap asks permission to use the Claude Code Remote connector.
+
+### Settings tab (phone)
+- **Theme:** Dracula (default), Dracula Light, Match phone, Light, Dark, One Dark Pro, GitHub Dark/Light, Tokyo Night, Catppuccin Mocha, Nord, Solarized Light. Saved per device.
 
 ### Notes (Mac, Obsidian)
 - Open Obsidian → your vault. Each topic page shows its stage, next review date and **Weak spots**.
