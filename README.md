@@ -43,6 +43,10 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 
 ## Using it
 
+### Already learned a lot? (Mac)
+- Say **`import ~/path/to/course-or-project`**. Claude scans it, proposes a topic list, you rate each one, and it writes notes + quiz questions. New topics are staggered (max 3 a day) so your phone quiz never floods.
+- Anything that comes up later in a vault session without a page: Claude asks "Add X to your quiz?".
+
 ### After you learn something (Mac)
 - In Cowork say **`/ingest`** (or "I just learned X").
 - Dump everything you remember first. Messy is fine, voice is fine. Where you stall is your gap.
@@ -66,6 +70,9 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 ### Other things to say in Cowork
 | Say | What happens |
 |---|---|
+| `import <folder or project>` | Bulk-add things you already learned (course repo, notes). Claude proposes topics, you rate them know / shaky / skip, new ones roll in 3 a day |
+| `process inbox` | Same, for files you dropped into `raw/inbox/` |
+| `refresh banks` | Writes fresh questions for topics whose question bank is used up |
 | `quiz me` | Quiz in chat instead of the phone |
 | `plan a build for X` / `build done` | Hands-on lab; at the end you explain your code line by line |
 | `plan week` | Fits reviews and builds around your schedule |

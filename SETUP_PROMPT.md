@@ -46,4 +46,4 @@ Tell me I can switch the task's model to Haiku in its settings once one run has 
 - Weekly plan around my schedule (`plan week`)
 - Apple Reminders / calendar blocks for study sessions
 
-**9. First run:** ask me for one thing I learned recently and run `/ingest` on it, so my first quiz is ready tomorrow. Then show me the "Using it" section of the kit's README in 5 bullets.
+**9. First run:** ask whether I have existing material (a course repo, notes folder or project). If yes, run the vault's `import` operation on it; if not, ask me for one thing I learned recently and run `/ingest` on it, so my first quiz is ready tomorrow. Then show me the "Using it" section of the kit's README in 5 bullets.
