@@ -268,7 +268,8 @@ function doneCard(topics) {
     const qs = Q.filter(q => q.topic === t), stage = Number(qs[0].stage) || 0;
     const r = topicResult(qs), ns = nextStage(stage, r);
     const row = el("div", "row"), d = el("div");
-    d.append(el("b", null, t), el("small", null, `Stage ${stage} → ${ns} · back in ${r === "fail" ? 1 : WAIT[ns]} day${r === "fail" ? "" : "s"}`));
+    const days = WAIT[ns];
+    d.append(el("b", null, t), el("small", null, `Stage ${stage} → ${ns} · back in ${days} day${days === 1 ? "" : "s"}`));
     row.append(d, el("span", "pill r-" + r, r)); rows.append(row);
   });
   c.append(rows); return c;

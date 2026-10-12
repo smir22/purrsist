@@ -22,6 +22,7 @@ Set up the Second Brain Kit for me from https://github.com/smir22/second-brain-k
 - put its URL in place of `[QUIZ_URL]` in `CLAUDE.md`, `Home.md` and `.sync/config.json`
 - set `reminder_start` / `reminder_end` (15 min) in `.sync/config.json` to my reminder time
 - pin the artifact to my sidebar
+- tell me how to add it to my phone: open it in Safari signed in to claude.ai → Share → Add to Home Screen. It opens in tap-answer mode; written answers are an optional switch.
 
 **5. Check:** run `python3 .sync/test_sync.py` in the vault. It must print `ok`.
 
@@ -36,7 +37,9 @@ Set up the Second Brain Kit for me from https://github.com/smir22/second-brain-k
 > 6. If "summary" is empty, nothing was loaded and "waiting_topics" is 0: reply "Nothing due" and stop. Otherwise reply with the summary as short bullets, plus any needs_bank / refresh_bank pages.
 > Never run git. Never edit vault files yourself — sync.py does all vault changes. If a step fails, report the error in one line and stop.
 
-Tell me I can switch the task's model to Haiku in its settings once one run has worked (it only moves JSON around).
+If I said no to calendar reminders, leave step 5 out of that prompt.
+
+Then run the task once now. If the run can't find the vault, tell me to add my vault folder in the task's settings and run it again. Once a run has worked, tell me I can switch the task's model to Haiku in its settings (it only moves JSON around).
 
 **7. Ingest skill:** propose `skills/ingest/SKILL.md` from the kit as a new skill named `ingest` (replace the vault path in it with mine) so I can type `/ingest`.
 
@@ -46,4 +49,4 @@ Tell me I can switch the task's model to Haiku in its settings once one run has 
 - Weekly plan around my schedule (`plan week`)
 - Apple Reminders / calendar blocks for study sessions
 
-**9. First run:** ask whether I have existing material (a course repo, notes folder or project). If yes, run the vault's `import` operation on it; if not, ask me for one thing I learned recently and run `/ingest` on it, so my first quiz is ready tomorrow. Then show me the "Using it" section of the kit's README in 5 bullets.
+**9. First run:** ask whether I have existing material (a course repo, notes folder or project). If yes, run the vault's `import` operation on it; if not, ask me for one thing I learned recently and run `/ingest` on it, so my first quiz is ready tomorrow. Then show me the "Using it" section of the kit's README in 5 bullets, including: `/ingest` after learning, `import` / `process inbox` for older material, Claude offering "Add X to your quiz?" in vault sessions, and `refresh banks` when a sync flags a topic.

@@ -4,20 +4,28 @@ A learning system that stops you forgetting what you learn. Claude keeps your no
 
 Built on Karpathy's "LLM wiki" idea and the CoderCo *Learn it so it sticks* method: recall first, explain it like you're teaching, review on days 1 · 3 · 7 · 14 · 31.
 
+<p align="center">
+  <img src="docs/screenshots/1-question.png" width="23%" alt="A quiz question with four tap answers and the review ladder">
+  <img src="docs/screenshots/2-feedback.png" width="23%" alt="Feedback after a correct answer">
+  <img src="docs/screenshots/3-written.png" width="23%" alt="Written answer marked by Claude: what you got, what's missing, model answer and a tip">
+  <img src="docs/screenshots/4-results.png" width="23%" alt="Results screen showing where each topic moves on the ladder">
+</p>
+<p align="center"><sub>Phone quiz: tap answers · instant feedback · optional written answers marked by Claude · where each topic moves next</sub></p>
+
 ---
 
 ## How it works
 
 ```
-learn something ──► /ingest (Mac, Claude Cowork)
+learn something ──► /ingest (Mac, Claude Cowork; typing or voice)
                       • brain-dump what you remember
-                      • Claude compares with the source → your gaps
-                      • writes notes + 9 quiz questions into Obsidian
+                      • Claude finds your gaps and drills you on them
+                      • writes notes + a bank of quiz questions into Obsidian
                               │
 evening sync (auto) ──► loads tomorrow's questions onto your quiz page
                       • adds an 08:00 "Quiz: …" calendar event
                               │
-commute (phone) ──► answer on the quiz page, Claude marks written answers
+commute (phone) ──► tap through the quiz (or write answers, marked by Claude)
                               │
 next sync (auto) ──► scores each topic, moves it up/down the ladder,
                      saves weak spots + log in Obsidian
@@ -48,9 +56,10 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 - Anything that comes up later in a vault session without a page: Claude asks "Add X to your quiz?".
 
 ### After you learn something (Mac)
-- In Cowork say **`/ingest`** (or "I just learned X").
-- Dump everything you remember first. Messy is fine, voice is fine. Where you stall is your gap.
-- Claude shows what you got right / wrong / missed, writes the notes, and asks one "teach it" question.
+- In Cowork say **`/ingest`** (or "I just learned X"). Typing, dictation and voice mode all work.
+- **Dump** everything you remember first. Messy is fine. Where you stall is your gap.
+- **Drill:** Claude takes your gaps one at a time: asks a guiding question, explains if you're stuck, then you explain it back like you're teaching a junior.
+- **Notes + questions:** it writes the topic page, your weak spots and a question bank (the first questions target what's still shaky).
 - Your first review is tomorrow.
 
 ### Quiz (phone)
@@ -80,7 +89,9 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 | `lint the wiki` | Monthly tidy: broken links, gaps, contradictions |
 
 ### Sync
-Runs twice a day by itself. Your Mac needs to be on and awake at those times; if it's asleep, the next run catches up. Nothing is lost.
+- Runs twice a day by itself (default 09:52 and 21:52): saves your quiz results into the vault, loads newly due questions, and (evening run) adds a calendar reminder naming tomorrow's topics.
+- All the logic is in `.sync/sync.py` (no AI tokens); the scheduled task only moves data. Once a run has worked, switch the task's model to **Haiku** in its settings to keep it cheap.
+- Your Mac needs to be on and awake at those times. If it's asleep, the next run catches up. Nothing is lost.
 
 ---
 
@@ -100,7 +111,9 @@ Open a Cowork task, connect your vault folder and say:
 | Quiz page empty | Nothing due yet, or the sync hasn't run. Run the scheduled task manually from the Claude app. |
 | Sync run says it can't find the vault | Add your vault folder in the scheduled task's settings. |
 | No calendar event | Connect Google Calendar in Claude, or check the event isn't on a different calendar. |
-| Marking feels harsh | Switch to Lenient on the quiz page. |
+| Calendar event shows in Google Calendar but not on iPhone | iPhone Settings → Apps → Calendar → Calendar Accounts → add the same Google account and turn Calendars on. |
+| Questions show a text box | You're in Write answers mode. Tap **Tap answers** at the top. |
+| Marking feels harsh | Write mode only: switch to Lenient. |
 
 ---
 
