@@ -2,6 +2,9 @@
 
 The quiz page shows its version under **Settings → About**. To update an existing setup, use [`UPDATE_PROMPT.md`](UPDATE_PROMPT.md).
 
+## 1.8.1
+- Hard mode: no recall step; 15 s per question, 10 s after 5 right in a row.
+
 ## 1.8.0
 - **Hard mode made harder:** recall first (options hidden until you tap), then a 10-second timer to pick; weak topics and previously missed questions weighted much more; a miss or timeout costs full XP; combo bonus starts at 3 in a row.
 - Answer options are shuffled every time in Quiz and Practice.

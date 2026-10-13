@@ -600,7 +600,7 @@ tabBtns.forEach(b => b.onclick = () => showTab(b.dataset.t));
 showTab("quiz");
 
 // ---------- Practice: one question at a time, swap animation, hard mode, icon ----------
-const VERSION = "1.8.0";
+const VERSION = "1.8.1";
 document.getElementById("version").textContent = `Second Brain Kit v${VERSION}`;
 const ICONS = ["🧠", "🦉", "🐉", "🚀", "⚡", "🔥", "🐺", "🦊", "🐙", "🤖", "🛰️", "🗝️"];
 let POOL = [], bag = [], pfilter = "all", combo = 0, practiceStarted = false, current = null, hard = false;
@@ -622,7 +622,7 @@ function hud() {
   document.getElementById("pcombo").textContent = combo > 0 ? `Combo ×${combo}` : "Combo –";
   const hb = document.getElementById("phard"); hb.setAttribute("aria-pressed", String(hard));
   document.getElementById("pnote").textContent = hard
-    ? "Hard mode: recall first, then 10 s to pick. Weak topics come up most. Full XP + combo bonus from 3 in a row; a miss costs full XP."
+    ? `Hard mode: ${hardSeconds()} s per question (drops to 10 s after 5 right in a row). Weak topics come up most. Full XP + combo bonus from 3 in a row; a miss or timeout costs full XP.`
     : "Half XP, keeps your streak. Misses become weak spots; the ladder never moves.";
 }
 function buildPool(shards) {
@@ -652,7 +652,7 @@ function markMissed(key, missed) {            // per device: questions missed in
   try { localStorage.setItem("missed", JSON.stringify([...m].slice(-300))); } catch (e) {}
 }
 let timer = null;
-const HARD_SECONDS = 10;
+const hardSeconds = () => combo >= 5 ? 10 : 15;   // 15 s to answer; after 5 right in a row it tightens to 10 s
 function cardFor(q) {
   const c = el("section", "card pcard enter"), stage = stageOf(q.page);
   const meta = el("div", "meta"); meta.append(el("span", "chip", KIND[q.kind] || q.kind), el("span", "chip plain", `${q.topic} · ${WAIT[stage]}d`));
@@ -664,16 +664,10 @@ function cardFor(q) {
     opts.append(b);
   });
   if (!hard) { c.append(opts); return c; }
-  // Hard mode: answer it in your head first; options + a 10 s clock only after you tap
-  const reveal = el("button", "primary", "I've got it: show options");
-  const think = el("p", "hint", "Recall the answer first. No timer while you think.");
-  reveal.onclick = () => {
-    reveal.remove(); think.remove();
-    const tb = el("div", "tbar"), ti = el("i"); ti.style.animationDuration = HARD_SECONDS + "s"; tb.append(ti);
-    c.append(tb, opts);
-    timer = setTimeout(() => answer(q, -1, c, null, opts, stage), HARD_SECONDS * 1000);
-  };
-  c.append(think, reveal);
+  const secs = hardSeconds(), tb = el("div", "tbar"), ti = el("i");
+  ti.style.animationDuration = secs + "s"; tb.append(ti);
+  c.append(el("span", "chip plain", `${secs} s`), tb, opts);
+  timer = setTimeout(() => answer(q, -1, c, null, opts, stage), secs * 1000);
   return c;
 }
 function answer(q, i, c, b, opts, stage) {
