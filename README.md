@@ -79,7 +79,9 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 ### Practice tab (phone)
 - **One question at a time** from your whole bank, as many as you like, with a smooth swap to the next. Weaker topics come up more often; filter to shaky topics or one topic.
 - Right: green glow, XP floats up, next question slides in. Wrong: quick shake, the right answer is shown, tap Next.
-- **Normal:** half XP (+1 even for a miss). **Hard mode:** full XP plus a combo bonus for answers in a row, but a miss costs XP.
+- **Normal:** half XP (+1 even for a miss).
+- **Hard mode:** recall the answer in your head first (no timer while you think), then tap to show the options and you have **10 seconds** to pick. Weak topics and questions you've missed before come up much more often. Full XP plus a combo bonus from 3 in a row; a miss or timeout costs the full XP value.
+- Answer options are shuffled every time (Quiz and Practice), so you can't memorise positions.
 - Counts for your streak; misses are saved as weak spots. It never moves topics on the ladder, so your review schedule stays honest.
 - Pick **your icon** in Settings; it shows next to your level.
 

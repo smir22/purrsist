@@ -2,6 +2,10 @@
 
 The quiz page shows its version under **Settings → About**. To update an existing setup, use [`UPDATE_PROMPT.md`](UPDATE_PROMPT.md).
 
+## 1.8.0
+- **Hard mode made harder:** recall first (options hidden until you tap), then a 10-second timer to pick; weak topics and previously missed questions weighted much more; a miss or timeout costs full XP; combo bonus starts at 3 in a row.
+- Answer options are shuffled every time in Quiz and Practice.
+
 ## 1.7.0
 - **Practice reworked:** one question at a time with swap animation, a green glow and floating XP when right, a shake when wrong.
 - **Hard mode:** full XP plus combo bonus when right, lose XP when wrong.
