@@ -29,8 +29,8 @@ Set up the Second Brain Kit for me from https://github.com/smir22/second-brain-k
 **6. Sync task:** create a scheduled task named "Second Brain quiz sync" that needs my computer, runs once a night at my sync time in my time zone, and attaches my vault folder. Use this prompt, with my vault folder name and quiz URL filled in:
 
 > Quiz sync for my Obsidian vault. In device_bash, cd into the vault first: `cd "$HOME/mnt/<VAULT FOLDER NAME>"` (run `ls $HOME/mnt` if that fails). Follow these steps exactly and do nothing else:
-> 1. Load ArtifactData via ToolSearch. List collections `questions`, `answers` and `stats` on <QUIZ URL>.
-> 2. Write {"questions": [rows], "answers": [rows], "stats": [rows]} to .sync/inbox.json, rows exactly as listed (id, data, version).
+> 1. Load ArtifactData via ToolSearch. On <QUIZ URL>: list collections `questions`, `answers` and `stats`. List collection `bank` with `out_dir` set to a scratch folder (only each doc's id and version are needed).
+> 2. Write {"questions": [rows], "answers": [rows], "stats": [rows], "bank": [{"id": ..., "version": ...}]} to .sync/inbox.json — question/answer/stats rows exactly as listed (id, data, version); bank rows id + version only.
 > 3. Run: python3 .sync/sync.py . .sync/inbox.json
 > 4. For each array in the output's "batches": one ArtifactData batch call with those writes, unchanged.
 > 5. If "calendar" is not null: create a Google Calendar event (my time zone) using its title, date, start, end and description.

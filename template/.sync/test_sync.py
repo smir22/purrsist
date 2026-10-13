@@ -1,6 +1,7 @@
 """Self-check for sync.py: python3 test_sync.py"""
 import datetime as dt
 import json
+import re
 import tempfile
 from pathlib import Path
 
@@ -71,10 +72,33 @@ with tempfile.TemporaryDirectory() as d:
 
     # Morning run, nothing answered, topic already queued -> no new sets, no calendar.
     queued = {"questions": [{"id": s["doc_id"], "version": 1, "data": s["data"]} for s in sets], "answers": []}
+    bank1 = [w for w in writes if w["collection"] == "bank"]
+    assert len(bank1) == 1 and bank1[0]["data"]["topics"][0]["t"] == "Topic A" and "if_version" not in bank1[0]   # first publish
+
     queued["stats"] = [{"id": "mastery", "version": 4, "data": {}}]
+    queued["bank"] = [{"id": bank1[0]["doc_id"], "version": 2}]
     out3 = run(v, queued, dt.datetime(2026, 10, 12, 9, 52))
     w3 = [w for b in out3["batches"] for w in b]
-    assert [w["collection"] for w in w3] == ["stats"] and w3[0]["if_version"] == 4   # only the mastery refresh
+    assert [w["collection"] for w in w3] == ["stats"] and w3[0]["if_version"] == 4   # bank unchanged -> not resent
     assert out3["calendar"] is None and out3["waiting_topics"] == 1
+    assert "by_page" in w3[0]["data"] and w3[0]["data"]["by_page"]["wiki/tech/Topic A.md"] == 0
+
+    # Practice answers: a miss becomes a weak spot (once), the ladder doesn't move, the answer is deleted.
+    before_stage = re.search(r"^stage: (\d+)", page.read_text(), re.M).group(1)
+    pr = {"id": "p-1", "version": 1, "data": {"mode": "practice", "page": "wiki/tech/Topic A.md", "verdict": "wrong", "missing": ["the right idea"]}}
+    out4 = run(v, {**queued, "answers": [pr, {**pr, "id": "p-2"}]}, dt.datetime(2026, 10, 12, 12, 0))
+    t4 = page.read_text()
+    assert t4.count("(practice) the right idea") == 1 and re.search(r"^stage: (\d+)", t4, re.M).group(1) == before_stage
+    assert sum(w["op"] == "delete" and w["collection"] == "answers" for b in out4["batches"] for w in b) == 2
+    assert "Practice answers saved: 2" in out4["summary"]
+
+    # --push-bank resends every non-empty shard
+    out5 = run(v, queued, dt.datetime(2026, 10, 12, 12, 5), force_bank=True)
+    assert any(w["collection"] == "bank" and w.get("if_version") == 2 for b in out5["batches"] for w in b)
+
+    files = __import__("sync").export_bank(v, Path(d) / "bank_out")
+    assert files and json.loads((Path(d) / "bank_out" / files[0]).read_text())["topics"][0]["t"] == "Topic A"
+    out6 = run(v, queued, dt.datetime(2026, 10, 12, 12, 10))     # after export, an unchanged bank isn't resent
+    assert not any(w["collection"] == "bank" for b in out6["batches"] for w in b)
 
 print("ok")

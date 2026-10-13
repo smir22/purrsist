@@ -5,3 +5,5 @@
 .sync/processed.txt
 .sync/calendar.txt
 .sync/__pycache__/
+.sync/bank_out/
+.sync/bank_hash.json

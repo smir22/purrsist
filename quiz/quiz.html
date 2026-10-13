@@ -110,6 +110,9 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
 .mode button{min-height:32px;padding:6px 10px;border:0;border-radius:7px;background:transparent;font-size:.8rem;color:var(--muted);text-align:center}
 .mode button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600}
 .view{display:flex;flex-direction:column;gap:16px}
+.pselect{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:44px;width:100%}
+.pcard .opts button{min-height:44px;padding:10px 12px}
+.xpgain{font:600 .78rem/1 var(--mono);color:var(--good);align-self:flex-start}
 .skins{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .skin{display:flex;flex-direction:column;gap:8px;padding:10px;text-align:left}
 .skin[aria-checked="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
@@ -146,6 +149,7 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
     <div class="bar" aria-hidden="true"><i id="prog"></i></div>
     <div class="mode tabs" id="tabs" role="tablist" aria-label="View">
       <button type="button" data-t="quiz">Quiz</button>
+      <button type="button" data-t="practice">Practice</button>
       <button type="button" data-t="progress">Progress</button>
       <button type="button" data-t="settings">Settings</button>
     </div>
@@ -168,11 +172,26 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
   </main>
   </div>
   <section id="progressView" class="view" hidden></section>
+  <section id="practiceView" class="view" hidden>
+    <section class="card">
+      <h2 class="small">Endless practice</h2>
+      <p class="hint">Extra recall from your whole question bank. Earns half XP and keeps your streak; misses become weak spots. It never moves topics on the ladder.</p>
+      <label class="hint" for="pfilter">Focus</label>
+      <select id="pfilter" class="pselect"></select>
+      <p class="hint" id="psession">Session: 0 answered</p>
+    </section>
+    <div id="feed" class="view"></div>
+    <div id="feedEnd" aria-hidden="true" style="height:1px"></div>
+  </section>
   <section id="settingsView" class="view" hidden>
     <section class="card">
       <h2 class="small">Theme</h2>
       <div class="skins" id="skins" role="radiogroup" aria-label="Theme"></div>
       <p class="hint">Saved on this device.</p>
+    </section>
+    <section class="card">
+      <h2 class="small">About</h2>
+      <p class="hint" id="version"></p>
     </section>
   </section>
 </div>
@@ -358,7 +377,10 @@ function doneCard(topics) {
     d.append(el("b", null, t), el("small", null, `Stage ${stage} → ${ns} · back in ${days} day${days === 1 ? "" : "s"}`));
     row.append(d, el("span", "pill r-" + r, r)); rows.append(row);
   });
-  c.append(rows); return c;
+  const more = el("button", "primary", "Keep going: endless practice");
+  more.onclick = () => showTab("practice");
+  const row = el("div", "actions"); row.append(more);
+  c.append(rows, row); return c;
 }
 
 async function save(q, data) {
@@ -397,8 +419,11 @@ function writeDay(patch) {
     catch (e) { if (e?.code === "invalid_argument") { try { await ref.set({ days: { [dd]: next } }); } catch (_) {} } }
   });
 }
-function logDay(verdict, stage) {
-  writeDay(c => ({ ...c, n: c.n + 1, [verdict[0]]: (c[verdict[0]] || 0) + 1, xp: c.xp + Math.round((XP[verdict] || 0) * (1 + 0.5 * stage)) }));
+const xpFor = (verdict, stage, factor = 1) => Math.max(1, Math.round((XP[verdict] || 0) * (1 + 0.5 * stage) * factor));
+function logDay(verdict, stage, factor = 1) {
+  const gain = xpFor(verdict, stage, factor);
+  writeDay(c => ({ ...c, n: c.n + 1, [verdict[0]]: (c[verdict[0]] || 0) + 1, xp: c.xp + gain }));
+  return gain;
 }
 function markChecked() {          // opening the quiz on a day with nothing due still keeps the streak
   if (checkedToday || !actLoaded) return;
@@ -488,7 +513,8 @@ const tabBtns = document.querySelectorAll("#tabs button");
 function showTab(t) {
   tab = t;
   tabBtns.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.t === t)));
-  for (const v of ["quiz", "progress", "settings"]) document.getElementById(v + "View").hidden = t !== v;
+  for (const v of ["quiz", "practice", "progress", "settings"]) document.getElementById(v + "View").hidden = t !== v;
+  if (t === "practice") startPractice();
   if (t === "progress") renderProgress();
 }
 
@@ -528,6 +554,75 @@ applySkin();
 tabBtns.forEach(b => b.onclick = () => showTab(b.dataset.t));
 showTab("quiz");
 
+// ---------- Endless practice: weighted shuffle of the whole bank, half XP, misses -> weak spots ----------
+const VERSION = "1.6.0";
+document.getElementById("version").textContent = `Second Brain Kit v${VERSION}`;
+let POOL = [], bag = [], pfilter = "all", psess = { n: 0, c: 0, xp: 0 }, practiceStarted = false;
+const stageOf = page => Number(STATS.mastery?.by_page?.[page] ?? 0);
+function buildPool(shards) {
+  POOL = [];
+  for (const sh of shards) for (const t of sh.topics || []) (t.sets || []).flat().forEach((q, i) => {
+    if (Array.isArray(q.options) && q.options.length) POOL.push({ ...q, topic: t.t, page: t.p, key: t.p + "#" + i });
+  });
+  const sel = document.getElementById("pfilter"), cur = sel.value || pfilter;
+  const topics = [...new Set(POOL.map(q => q.topic))].sort();
+  sel.replaceChildren(...[["all", "All topics (weakest more often)"], ["weak", "Shaky topics only (1–3 day steps)"], ...topics.map(t => ["t:" + t, t])]
+    .map(([v, l]) => { const o = el("option", null, l); o.value = v; return o; }));
+  sel.value = [...sel.options].some(o => o.value === cur) ? cur : "all";
+  if (tab === "practice") { bag = []; if (!document.getElementById("feed").children.length) more(5); }
+}
+function refill() {           // Efraimidis–Spirakis weighted shuffle: low ladder steps come up more often
+  let pool = POOL;
+  if (pfilter === "weak") pool = POOL.filter(q => stageOf(q.page) <= 1);
+  else if (pfilter.startsWith("t:")) pool = POOL.filter(q => q.topic === pfilter.slice(2));
+  bag = pool.map(q => ({ q, k: Math.log(Math.random()) / (1 / (stageOf(q.page) + 1)) })).sort((a, b) => b.k - a.k).map(x => x.q);
+}
+function practiceCard(q) {
+  const c = el("section", "card pcard"), stage = stageOf(q.page);
+  const meta = el("div", "meta"); meta.append(el("span", "chip", KIND[q.kind] || q.kind), el("span", "chip plain", `${q.topic} · ${WAIT[stage]}d step`));
+  const opts = el("div", "opts");
+  c.append(meta, el("p", "prompt", q.prompt), opts);
+  q.options.forEach((o, i) => {
+    const b = el("button", null, o);
+    b.onclick = () => {
+      const ok = i === Number(q.correct), verdict = ok ? "correct" : "wrong";
+      opts.querySelectorAll("button").forEach((x, j) => { x.disabled = true; if (j === Number(q.correct)) x.classList.add("right"); });
+      if (!ok) b.classList.add("wrong");
+      const gain = logDay(verdict, stage, 0.5);
+      psess.n++; if (ok) psess.c++; psess.xp += gain;
+      document.getElementById("psession").textContent = `Session: ${psess.n} answered · ${Math.round(psess.c / psess.n * 100)}% · +${psess.xp} XP`;
+      c.append(el("span", "xpgain", `+${gain} XP`));
+      if (!ok) {
+        c.append(el("p", "hint", q.answer || q.options[q.correct]));
+        db.collection("answers").doc(`p-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`)
+          .set({ mode: "practice", page: q.page, topic: q.topic, kind: q.kind, verdict, missing: [q.options[q.correct]], at: new Date().toISOString() }).catch(() => {});
+      }
+      more(1);
+    };
+    opts.append(b);
+  });
+  return c;
+}
+function more(n) {
+  const feed = document.getElementById("feed");
+  if (!POOL.length) { feed.replaceChildren(Object.assign(el("section", "card empty"), {})); feed.firstChild.append(el("h2", null, "No question bank yet"), el("p", null, "Your questions appear here after the next sync.")); return; }
+  for (let i = 0; i < n; i++) {
+    if (!bag.length) refill();
+    const q = bag.shift(); if (!q) break;
+    feed.append(practiceCard(q));
+  }
+  while (feed.children.length > 40) feed.firstChild.remove();       // keep the page light on long sessions
+}
+function startPractice() {
+  if (practiceStarted) return;
+  practiceStarted = true;
+  const sel = document.getElementById("pfilter");
+  sel.onchange = () => { pfilter = sel.value; bag = []; document.getElementById("feed").replaceChildren(); more(5); };
+  more(5);
+  new IntersectionObserver(es => { if (es.some(e => e.isIntersecting) && tab === "practice") more(3); }, { rootMargin: "400px" })
+    .observe(document.getElementById("feedEnd"));
+}
+
 async function boot() {
   if (!window.claude?.use) return;
   db = await claude.use("db");
@@ -542,6 +637,7 @@ async function boot() {
     if (tab === "progress") renderProgress();
   }, () => {});
   db.collection("stats").onSnapshot(s => { STATS = Object.fromEntries(s.docs.map(d => [d.id, d.data()])); if (tab === "progress") renderProgress(); }, () => {});
+  db.collection("bank").onSnapshot(s => { buildPool(s.docs.map(d => d.data())); }, () => {});
   db.collection("questions").orderBy("order").onSnapshot(s => {
     Q = s.docs.map(d => ({ id: d.id, ...d.data() })); render();
     if (!s.metadata?.fromCache) { qSeen = true; if (!Q.length) markChecked(); }

@@ -123,9 +123,9 @@ After each page is quizzed:
 
 ### sync  (scheduled nightly, "Sync now" on the quiz page, or "sync quiz")
 Phone quiz page: [QUIZ_URL] (db via the ArtifactData tool).
-All logic lives in `.sync/sync.py` (scoring, ladder, weak spots, log, due topics, bank rotation, calendar, mastery stats for the Progress tab). The model only moves JSON:
-1. ArtifactData `list` on `questions`, `answers` and `stats`. If both empty AND nothing is due (`grep -l "^next_review:" -r wiki builds` dates ≤ today) → reply "Nothing due" and stop.
-2. Write `{"questions": [rows], "answers": [rows], "stats": [rows]}` (rows exactly as listed: id, data, version) to `.sync/inbox.json`.
+All logic lives in `.sync/sync.py` (scoring, ladder, weak spots, log, due topics, bank rotation, calendar, mastery stats for the Progress tab, practice answers → weak spots, changed question-bank shards for the Practice tab). The model only moves JSON:
+1. ArtifactData `list` on `questions`, `answers` and `stats`; list `bank` with `out_dir` (ids + versions only). If both empty AND nothing is due (`grep -l "^next_review:" -r wiki builds` dates ≤ today) → reply "Nothing due" and stop.
+2. Write `{"questions": [rows], "answers": [rows], "stats": [rows], "bank": [{id, version}]}` (rows exactly as listed: id, data, version) to `.sync/inbox.json`.
 3. `python3 .sync/sync.py . .sync/inbox.json` → JSON out.
 4. Each entry in `batches` → one ArtifactData `batch` call, passed as-is.
 5. `calendar` not null → Google Calendar create_event (Europe/London) with its title/date/start/end/description.
@@ -139,7 +139,9 @@ For material learned before the vault existed (course notes, a project repo, old
 3. **Write in batches of 5:** concept page + question bank per topic (same format as ingest). When the source is the user's own project, make `apply` questions about THEIR code ("In your <project>, why does X…?"). Link pages to a `wiki/sources/` page for the project.
 4. **Starting point:** *know it* → `stage: 2`, *shaky* → `stage: 0`.
 5. **Stagger reviews:** max 3 new topics due per day (shaky first), `next_review` spread over the following days, so the phone queue never floods.
-6. Move processed `raw/inbox/` files to `raw/`. Update `_index.md` files, one `log.md` entry (`import | <source>: N topics`).
+6. Publish banks for Practice (see below). Move processed `raw/inbox/` files to `raw/`. Update `_index.md` files, one `log.md` entry (`import | <source>: N topics`).
+
+**Publish banks for Practice** (after writing or changing question banks here): `python3 .sync/sync.py . --export-bank .sync/bank_out`, stage those files, then one ArtifactData `batch` of `set` writes to collection `bank` (doc id = file name without .json) using `file_path` — add `if_version` for shards that already exist (list `bank` with `out_dir` to get versions). Never paste the JSON by hand.
 
 ### refresh banks  ("refresh banks", or when a sync reports refresh_bank / needs_bank)
 For each flagged page: write 1–2 new question sets (same format, all with options), targeting `## Weak spots` first, and append them to the page's question bank. Never edit sets already used.

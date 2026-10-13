@@ -12,6 +12,7 @@ Built on Karpathy's "LLM wiki" idea and the CoderCo *Learn it so it sticks* meth
 </p>
 <p align="center">
   <img src="docs/screenshots/5-progress.png" width="30%" alt="Progress tab: streak, level and XP, activity heatmap, mastery by ladder step, Sync now">
+  <img src="docs/screenshots/7-practice.png" width="30%" alt="Practice tab: endless feed of questions from the whole bank with a topic filter">
   <img src="docs/screenshots/6-settings.png" width="30%" alt="Settings tab: theme picker with Dracula, Dracula Light, GitHub, Tokyo Night, Catppuccin, Nord and more">
 </p>
 <p align="center"><sub>Phone quiz: tap answers · instant feedback · optional written answers marked by Claude · where each topic moves next · Progress tab (example data)</sub></p>
@@ -75,6 +76,11 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 - **Done screen:** shows where each topic moves on the ladder.
 - Nothing to do? It says so. New questions load at the next sync.
 
+### Practice tab (phone)
+- **Endless practice:** scroll through questions from your whole bank, as many as you like. Weaker topics come up more often; filter to shaky topics or one topic.
+- Earns **half XP** and counts for your streak. Misses are saved as weak spots on that topic. It never moves topics on the ladder, so your review schedule stays honest.
+- Finished your daily quiz? The results screen has a "Keep going" button straight into Practice.
+
 ### Progress tab (phone)
 - **Streak:** days in a row you answered (or opened the quiz when nothing was due). One missed day a week is covered by an automatic freeze.
 - **Level & XP:** correct 10, partly 5, wrong 2 (for showing up), multiplied by the topic's ladder step, so remembering something after 31 days is worth more than after 1.
@@ -110,6 +116,10 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 
 ---
 
+## Updating
+
+Set up on an older version? Your quiz page doesn't update itself when this repo changes. Paste [`UPDATE_PROMPT.md`](UPDATE_PROMPT.md) into a Cowork task: it pulls the latest kit, updates the sync script and rules, and republishes your quiz page **at the same link**, keeping your notes, scores and history. Check your version under **Settings → About**; see [`CHANGELOG.md`](CHANGELOG.md) for what's new.
+
 ## Improving it with Claude
 
 Open a Cowork task, connect your vault folder and say:
@@ -127,6 +137,8 @@ Open a Cowork task, connect your vault folder and say:
 | Sync run says it can't find the vault | Add your vault folder in the scheduled task's settings. |
 | No calendar event | Connect Google Calendar in Claude, or check the event isn't on a different calendar. |
 | Calendar event shows in Google Calendar but not on iPhone | iPhone Settings → Apps → Calendar → Calendar Accounts → add the same Google account and turn Calendars on. |
+| Practice tab says no question bank yet | Run the sync once (Sync now), or say "publish banks for practice" in a vault session. |
+| Missing a feature from the README | You're on an older version. See **Updating** above. |
 | Questions show a text box | You're in Write answers mode. Tap **Tap answers** at the top. |
 | Marking feels harsh | Write mode only: switch to Lenient. |
 

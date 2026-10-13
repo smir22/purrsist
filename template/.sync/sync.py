@@ -4,10 +4,13 @@
 Claude only moves JSON between the quiz page's db and this script:
   python3 sync.py <vault_dir> <inbox.json> [--now 2026-10-11T21:52]
 inbox.json = {"questions": [rows], "answers": [rows]}   (rows exactly as ArtifactData `list` returns: {"id","data","version"})
+Add --push-bank to resend every question-bank shard (after a failed run).
 Prints JSON: {"batches": [[ArtifactData batch writes <=50]], "calendar": {...}|null, "summary": [...], "needs_bank": [...], "refresh_bank": [...]}
 """
 import datetime as dt
+import hashlib
 import json
+import zlib
 import re
 import sys
 from pathlib import Path
@@ -15,6 +18,7 @@ from pathlib import Path
 WAIT = [1, 3, 7, 14, 31, 60, 120]          # days per ladder stage
 SCORE = {"correct": 1.0, "partial": 0.5, "wrong": 0.0}
 MAX_TOPICS = 8                             # topics waiting on the quiz page at once
+BANK_SHARDS = 8                            # question banks published to the quiz page for Practice, split by page hash
 CONFIG = {"quiz_url": "", "reminder_start": "08:00", "reminder_end": "08:15"}   # overridden by .sync/config.json
 FM = re.compile(r"\A---\n(.*?)\n---\n", re.S)
 BANK = re.compile(r"^## Question bank\n+```json\n(.*?)\n```", re.S | re.M)
@@ -57,6 +61,9 @@ def set_fm(text, **kv):
 def add_weak(text, items, day):
     if not items:
         return text
+    items = [i for i in items if f": {i}\n" not in text]       # don't repeat a weak spot already listed
+    if not items:
+        return text
     lines = "".join(f"- {day}: {i}\n" for i in items)
     m = re.search(r"^## Weak spots\n", text, re.M)
     if not m:
@@ -87,7 +94,7 @@ def int0(v):
         return 0
 
 
-def run(vault, inbox, now):
+def run(vault, inbox, now, force_bank=False):
     vault = Path(vault)
     today, day = now.date(), now.date().isoformat()
     qs = {r["id"]: r for r in inbox.get("questions", [])}
@@ -126,22 +133,36 @@ def run(vault, inbox, now):
         for i in ids:
             writes.append({"op": "delete", "collection": "questions", "doc_id": i, "if_version": qs[i]["version"]})
             writes.append({"op": "delete", "collection": "answers", "doc_id": i, "if_version": ans[i]["version"]})
-    for i, a in ans.items():                 # answers whose question is already gone
-        if i not in qs:
-            writes.append({"op": "delete", "collection": "answers", "doc_id": i, "if_version": a["version"]})
+    practiced = 0
+    for i, a in ans.items():                 # practice answers, and answers whose question is already gone
+        if i in qs:
+            continue
+        d = a["data"]
+        if d.get("mode") == "practice" and i not in done:
+            practiced += 1
+            p = vault / d.get("page", "")
+            if d.get("page") and p.exists() and d.get("verdict") != "correct":   # practice never moves the ladder,
+                text, _ = read_page(p)                                            # but misses become weak spots
+                p.write_text(add_weak(text, [f"(practice) {m}" for m in (d.get("missing") or [])[:2]], day))
+            done.add(i)
+        writes.append({"op": "delete", "collection": "answers", "doc_id": i, "if_version": a["version"]})
     done_f.write_text("\n".join(sorted(done)) + "\n")
 
     # 2. Load newly due topics from their question banks.
     queued = {p for p in by_page if p not in cleared}
     cutoff = today + dt.timedelta(days=1 if now.hour >= 18 else 0)   # evening run preloads tomorrow
-    due, stages = [], [0] * len(WAIT)
+    due, stages, by_page, shards = [], [0] * len(WAIT), {}, [[] for _ in range(BANK_SHARDS)]
     for folder in ("wiki", "builds"):
         for p in sorted((vault / folder).rglob("*.md")):
             rel = p.relative_to(vault).as_posix()
-            _, meta = read_page(p)
+            text, meta = read_page(p)
             if meta.get("review") != "true":
                 continue
             stages[min(int0(meta.get("stage")), len(WAIT) - 1)] += 1
+            by_page[rel] = int0(meta.get("stage"))
+            sets = bank(text)
+            if sets:
+                shards[zlib.crc32(rel.encode()) % BANK_SHARDS].append({"t": title(text, p.stem), "p": rel, "sets": sets})
             if rel in queued:
                 continue
             try:
@@ -174,15 +195,34 @@ def run(vault, inbox, now):
     # Mastery snapshot for the quiz page's Progress tab (stage counts after this run's updates).
     st = {r["id"]: r for r in inbox.get("stats", [])}
     w = {"op": "set", "collection": "stats", "doc_id": "mastery",
-         "data": {"stages": stages, "total": sum(stages), "updated": now.isoformat(timespec="minutes")}}
+         "data": {"stages": stages, "total": sum(stages), "by_page": by_page, "updated": now.isoformat(timespec="minutes")}}
     if "mastery" in st:
         w["if_version"] = st["mastery"]["version"]
     writes.append(w)
+
+    # Question banks for Practice: only shards whose content changed (or that are missing on the page) are sent.
+    listed = {r["id"]: r["version"] for r in inbox.get("bank", [])}
+    hash_f = state / "bank_hash.json"
+    hashes = json.loads(hash_f.read_text()) if hash_f.exists() and not force_bank else {}
+    for k, topics in enumerate(shards):
+        sid, data = f"s{k}", {"topics": topics}
+        h = hashlib.sha1(json.dumps(data, sort_keys=True).encode()).hexdigest()
+        if not topics and sid not in listed:
+            continue
+        if hashes.get(sid) != h or sid not in listed:
+            bw = {"op": "set", "collection": "bank", "doc_id": sid, "data": data}
+            if sid in listed:
+                bw["if_version"] = listed[sid]
+            writes.append(bw)
+        hashes[sid] = h
+    hash_f.write_text(json.dumps(hashes))
 
     names = sorted({q["data"].get("topic", "") for q in qs.values() if q["data"].get("page") in queued} | set(loaded))
     waiting = len(names)
     if loaded:
         summary.append("Loaded: " + ", ".join(loaded))
+    if practiced:
+        summary.append(f"Practice answers saved: {practiced}")
     if log or loaded:
         with open(vault / "log.md", "a") as f:
             f.write(f"\n## [{day}] quiz | sync {now:%H:%M}\n"
@@ -207,7 +247,36 @@ def london_now():
         return dt.datetime.now()
 
 
+def export_bank(vault, out_dir):
+    """Write every non-empty bank shard to out_dir/s<k>.json and mark them as sent.
+    For big pushes (after an import) from a chat session: push the files with ArtifactData file_path instead of
+    pasting JSON. The nightly sync then only sends shards that change later."""
+    vault, out = Path(vault), Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    shards = [[] for _ in range(BANK_SHARDS)]
+    for folder in ("wiki", "builds"):
+        for p in sorted((vault / folder).rglob("*.md")):
+            text, meta = read_page(p)
+            sets = bank(text)
+            if meta.get("review") == "true" and sets:
+                rel = p.relative_to(vault).as_posix()
+                shards[zlib.crc32(rel.encode()) % BANK_SHARDS].append({"t": title(text, p.stem), "p": rel, "sets": sets})
+    hashes, files = {}, []
+    for k, topics in enumerate(shards):
+        if not topics:
+            continue
+        data = {"topics": topics}
+        hashes[f"s{k}"] = hashlib.sha1(json.dumps(data, sort_keys=True).encode()).hexdigest()
+        (out / f"s{k}.json").write_text(json.dumps(data, ensure_ascii=False))
+        files.append(f"s{k}.json")
+    (vault / ".sync" / "bank_hash.json").write_text(json.dumps(hashes))
+    return files
+
+
 if __name__ == "__main__":
     args = sys.argv[1:]
+    if "--export-bank" in args:
+        print(json.dumps(export_bank(args[0], args[args.index("--export-bank") + 1])))
+        sys.exit(0)
     now = dt.datetime.fromisoformat(args[args.index("--now") + 1]) if "--now" in args else london_now()
-    print(json.dumps(run(args[0], json.loads(Path(args[1]).read_text()), now), indent=1))
+    print(json.dumps(run(args[0], json.loads(Path(args[1]).read_text()), now, force_bank="--push-bank" in args), indent=1))
