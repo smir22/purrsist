@@ -112,6 +112,33 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
 .view{display:flex;flex-direction:column;gap:16px}
 .pselect{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:44px;width:100%}
 .pcard .opts button{min-height:44px;padding:10px 12px}
+.hud{gap:10px;padding:14px}
+.hudrow{display:flex;align-items:center;gap:10px}
+.hudmid{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.hudmid b{font:600 .95rem/1 var(--display)}
+.hudright{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-variant-numeric:tabular-nums}
+.hudright b{font:700 1rem/1 var(--mono);color:var(--accent)}
+.hudright small{font:500 .7rem/1 var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.hudrow .pselect{flex:1;min-width:0}
+.avatar{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:1.6rem;background:var(--accent-soft);flex:none}
+.hard{text-align:center;white-space:nowrap;min-height:44px;font-weight:600;color:var(--muted)}
+.hard[aria-pressed="true"]{border-color:var(--bad);color:var(--bad);background:var(--bad-soft)}
+.pstage{position:relative;min-height:320px}
+.pcard{position:relative;transition:transform .26s cubic-bezier(.2,.8,.2,1),opacity .26s ease,box-shadow .2s ease}
+.pcard.enter{transform:translateX(48px);opacity:0}
+.pcard.leave{position:absolute;inset:0 0 auto 0;transform:translateX(-48px);opacity:0;pointer-events:none}
+.pcard.good{box-shadow:0 0 0 2px var(--good),0 0 28px color-mix(in srgb,var(--good) 35%,transparent);animation:pop .32s ease}
+.pcard.bad{box-shadow:0 0 0 2px var(--bad);animation:shake .38s ease}
+.float{position:absolute;right:18px;top:14px;font:700 1.05rem/1 var(--mono);pointer-events:none;animation:floatup 1s ease forwards}
+.float.up{color:var(--good)}.float.down{color:var(--bad)}
+.combo{font:600 .72rem/1 var(--mono);color:var(--warn);letter-spacing:.06em;text-transform:uppercase}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.025)}100%{transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes floatup{0%{opacity:0;transform:translateY(8px)}15%{opacity:1}100%{opacity:0;transform:translateY(-34px)}}
+.icons{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.icons button{font-size:1.5rem;text-align:center;padding:8px 0;min-height:48px}
+.icons button[aria-checked="true"]{border-color:var(--accent);background:var(--accent-soft)}
+@media (prefers-reduced-motion:reduce){.pcard,.pcard.good,.pcard.bad,.float{animation:none!important;transition:opacity .15s}.pcard.enter,.pcard.leave{transform:none}}
 .xpgain{font:600 .78rem/1 var(--mono);color:var(--good);align-self:flex-start}
 .skins{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .skin{display:flex;flex-direction:column;gap:8px;padding:10px;text-align:left}
@@ -173,21 +200,32 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
   </div>
   <section id="progressView" class="view" hidden></section>
   <section id="practiceView" class="view" hidden>
-    <section class="card">
-      <h2 class="small">Endless practice</h2>
-      <p class="hint">Extra recall from your whole question bank. Earns half XP and keeps your streak; misses become weak spots. It never moves topics on the ladder.</p>
-      <label class="hint" for="pfilter">Focus</label>
-      <select id="pfilter" class="pselect"></select>
-      <p class="hint" id="psession">Session: 0 answered</p>
+    <section class="card hud">
+      <div class="hudrow">
+        <span class="avatar" id="pavatar" aria-hidden="true"></span>
+        <div class="hudmid">
+          <b id="plevel">Level 1</b>
+          <div class="xpbar"><i id="pxpbar"></i></div>
+        </div>
+        <div class="hudright"><b id="pxp">0 XP</b><small id="pcombo">Combo 0</small></div>
+      </div>
+      <div class="hudrow">
+        <select id="pfilter" class="pselect" aria-label="Focus"></select>
+        <button type="button" class="hard" id="phard" aria-pressed="false">Hard mode</button>
+      </div>
+      <p class="hint" id="pnote"></p>
     </section>
-    <div id="feed" class="view"></div>
-    <div id="feedEnd" aria-hidden="true" style="height:1px"></div>
+    <div class="pstage" id="pstage"></div>
   </section>
   <section id="settingsView" class="view" hidden>
     <section class="card">
       <h2 class="small">Theme</h2>
       <div class="skins" id="skins" role="radiogroup" aria-label="Theme"></div>
       <p class="hint">Saved on this device.</p>
+    </section>
+    <section class="card">
+      <h2 class="small">Your icon</h2>
+      <div class="icons" id="icons" role="radiogroup" aria-label="Your icon"></div>
     </section>
     <section class="card">
       <h2 class="small">About</h2>
@@ -377,7 +415,7 @@ function doneCard(topics) {
     d.append(el("b", null, t), el("small", null, `Stage ${stage} → ${ns} · back in ${days} day${days === 1 ? "" : "s"}`));
     row.append(d, el("span", "pill r-" + r, r)); rows.append(row);
   });
-  const more = el("button", "primary", "Keep going: endless practice");
+  const more = el("button", "primary", "Keep going: practice");
   more.onclick = () => showTab("practice");
   const row = el("div", "actions"); row.append(more);
   c.append(rows, row); return c;
@@ -444,6 +482,7 @@ function streak() {               // 1 automatic freeze per week covers one miss
 function totals() {
   let xp = 0, n = 0;
   for (const m of Object.values(ACT)) for (const v of Object.values(m.days || {})) { xp += v.xp || 0; n += v.n || 0; }
+  xp = Math.max(0, xp);
   const level = Math.floor(Math.sqrt(xp / 50)) + 1, lo = 50 * (level - 1) ** 2, hi = 50 * level ** 2;
   return { xp, n, level, pct: (xp - lo) / (hi - lo), toNext: hi - xp };
 }
@@ -458,7 +497,7 @@ function renderProgress() {
   const xpb = el("div", "xpbar"); const xi = el("i"); xi.style.width = Math.round(T.pct * 100) + "%"; xpb.append(xi);
   const tiles = el("div", "tiles");
   tiles.append(tile("Streak", `${s}d`, freezeLeft ? "Freeze ready this week" : "Freeze used this week"),
-    tile("Level", String(T.level), `${T.xp} XP · ${T.toNext} to next`, xpb),
+    tile("Level", `${myIcon()} ${T.level}`, `${T.xp} XP · ${T.toNext} to next`, xpb),
     tile("Mastered", ms ? `${mastered}/${total}` : "–", "Topics at the 31-day step or above"));
 
   // Heatmap: last 20 weeks, Monday rows first, today outlined
@@ -554,11 +593,32 @@ applySkin();
 tabBtns.forEach(b => b.onclick = () => showTab(b.dataset.t));
 showTab("quiz");
 
-// ---------- Endless practice: weighted shuffle of the whole bank, half XP, misses -> weak spots ----------
-const VERSION = "1.6.0";
+// ---------- Practice: one question at a time, swap animation, hard mode, icon ----------
+const VERSION = "1.7.0";
 document.getElementById("version").textContent = `Second Brain Kit v${VERSION}`;
-let POOL = [], bag = [], pfilter = "all", psess = { n: 0, c: 0, xp: 0 }, practiceStarted = false;
+const ICONS = ["🧠", "🦉", "🐉", "🚀", "⚡", "🔥", "🐺", "🦊", "🐙", "🤖", "🛰️", "🗝️"];
+let POOL = [], bag = [], pfilter = "all", combo = 0, practiceStarted = false, current = null, hard = false;
+try { hard = localStorage.getItem("hard") === "1"; } catch (e) {}
 const stageOf = page => Number(STATS.mastery?.by_page?.[page] ?? 0);
+const myIcon = () => STATS.profile?.icon || ICONS[0];
+// Normal: half XP, +1 for a miss. Hard: full XP + combo bonus (max +10), a miss costs half.
+function practiceXP(ok, stage) {
+  const base = XP.correct * (1 + 0.5 * stage);
+  if (!hard) return ok ? Math.max(1, Math.round(base / 2)) : 1;
+  return ok ? Math.round(base) + Math.min(10, 2 * combo) : -Math.round(base / 2);
+}
+function hud() {
+  const T = totals();
+  document.getElementById("pavatar").textContent = myIcon();
+  document.getElementById("plevel").textContent = `Level ${T.level}`;
+  document.getElementById("pxpbar").style.width = Math.round(T.pct * 100) + "%";
+  document.getElementById("pxp").textContent = `${T.xp} XP`;
+  document.getElementById("pcombo").textContent = combo > 1 ? `Combo ×${combo}` : "Combo 0";
+  const hb = document.getElementById("phard"); hb.setAttribute("aria-pressed", String(hard));
+  document.getElementById("pnote").textContent = hard
+    ? "Hard mode: full XP plus a combo bonus when right, but a miss costs XP."
+    : "Half XP, keeps your streak. Misses become weak spots; the ladder never moves.";
+}
 function buildPool(shards) {
   POOL = [];
   for (const sh of shards) for (const t of sh.topics || []) (t.sets || []).flat().forEach((q, i) => {
@@ -566,62 +626,86 @@ function buildPool(shards) {
   });
   const sel = document.getElementById("pfilter"), cur = sel.value || pfilter;
   const topics = [...new Set(POOL.map(q => q.topic))].sort();
-  sel.replaceChildren(...[["all", "All topics (weakest more often)"], ["weak", "Shaky topics only (1–3 day steps)"], ...topics.map(t => ["t:" + t, t])]
+  sel.replaceChildren(...[["all", "All topics"], ["weak", "Shaky topics"], ...topics.map(t => ["t:" + t, t])]
     .map(([v, l]) => { const o = el("option", null, l); o.value = v; return o; }));
   sel.value = [...sel.options].some(o => o.value === cur) ? cur : "all";
-  if (tab === "practice") { bag = []; if (!document.getElementById("feed").children.length) more(5); }
+  if (tab === "practice" && !current) nextCard();
 }
-function refill() {           // Efraimidis–Spirakis weighted shuffle: low ladder steps come up more often
+function refill() {           // weighted shuffle: low ladder steps come up more often
   let pool = POOL;
   if (pfilter === "weak") pool = POOL.filter(q => stageOf(q.page) <= 1);
   else if (pfilter.startsWith("t:")) pool = POOL.filter(q => q.topic === pfilter.slice(2));
-  bag = pool.map(q => ({ q, k: Math.log(Math.random()) / (1 / (stageOf(q.page) + 1)) })).sort((a, b) => b.k - a.k).map(x => x.q);
+  bag = pool.map(q => ({ q, k: Math.log(Math.random()) * (stageOf(q.page) + 1) })).sort((a, b) => b.k - a.k).map(x => x.q);
+  if (current && bag.length > 1 && bag[0].key === current.key) bag.push(bag.shift());   // no instant repeat
 }
-function practiceCard(q) {
-  const c = el("section", "card pcard"), stage = stageOf(q.page);
-  const meta = el("div", "meta"); meta.append(el("span", "chip", KIND[q.kind] || q.kind), el("span", "chip plain", `${q.topic} · ${WAIT[stage]}d step`));
+function cardFor(q) {
+  const c = el("section", "card pcard enter"), stage = stageOf(q.page);
+  const meta = el("div", "meta"); meta.append(el("span", "chip", KIND[q.kind] || q.kind), el("span", "chip plain", `${q.topic} · ${WAIT[stage]}d`));
   const opts = el("div", "opts");
   c.append(meta, el("p", "prompt", q.prompt), opts);
   q.options.forEach((o, i) => {
     const b = el("button", null, o);
-    b.onclick = () => {
-      const ok = i === Number(q.correct), verdict = ok ? "correct" : "wrong";
-      opts.querySelectorAll("button").forEach((x, j) => { x.disabled = true; if (j === Number(q.correct)) x.classList.add("right"); });
-      if (!ok) b.classList.add("wrong");
-      const gain = logDay(verdict, stage, 0.5);
-      psess.n++; if (ok) psess.c++; psess.xp += gain;
-      document.getElementById("psession").textContent = `Session: ${psess.n} answered · ${Math.round(psess.c / psess.n * 100)}% · +${psess.xp} XP`;
-      c.append(el("span", "xpgain", `+${gain} XP`));
-      if (!ok) {
-        c.append(el("p", "hint", q.answer || q.options[q.correct]));
-        db.collection("answers").doc(`p-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`)
-          .set({ mode: "practice", page: q.page, topic: q.topic, kind: q.kind, verdict, missing: [q.options[q.correct]], at: new Date().toISOString() }).catch(() => {});
-      }
-      more(1);
-    };
+    b.onclick = () => answer(q, i, c, b, opts, stage);
     opts.append(b);
   });
   return c;
 }
-function more(n) {
-  const feed = document.getElementById("feed");
-  if (!POOL.length) { feed.replaceChildren(Object.assign(el("section", "card empty"), {})); feed.firstChild.append(el("h2", null, "No question bank yet"), el("p", null, "Your questions appear here after the next sync.")); return; }
-  for (let i = 0; i < n; i++) {
-    if (!bag.length) refill();
-    const q = bag.shift(); if (!q) break;
-    feed.append(practiceCard(q));
+function answer(q, i, c, b, opts, stage) {
+  const ok = i === Number(q.correct), verdict = ok ? "correct" : "wrong";
+  opts.querySelectorAll("button").forEach((x, j) => { x.disabled = true; if (j === Number(q.correct)) x.classList.add("right"); });
+  if (!ok) b.classList.add("wrong");
+  combo = ok ? combo + 1 : 0;
+  const delta = practiceXP(ok, stage);
+  writeDay(d => ({ ...d, n: d.n + 1, [verdict[0]]: (d[verdict[0]] || 0) + 1, xp: d.xp + delta }));
+  c.classList.add(ok ? "good" : "bad");
+  c.append(el("span", "float " + (delta >= 0 ? "up" : "down"), `${delta >= 0 ? "+" : ""}${delta} XP`));
+  if (ok && combo > 1) c.append(el("span", "combo", `Combo ×${combo}`));
+  hud();
+  if (ok) { setTimeout(() => { if (current === q) nextCard(); }, 850); return; }
+  c.append(el("p", "hint", q.answer || q.options[q.correct]));
+  const nx = el("button", "primary", "Next"); nx.onclick = nextCard;
+  const row = el("div", "actions"); row.append(nx); c.append(row);
+  db.collection("answers").doc(`p-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`)
+    .set({ mode: "practice", page: q.page, topic: q.topic, kind: q.kind, verdict, missing: [q.options[q.correct]], at: new Date().toISOString() }).catch(() => {});
+}
+function nextCard() {
+  const stageEl = document.getElementById("pstage");
+  if (!POOL.length) {
+    current = null;
+    const e = el("section", "card empty"); e.append(el("h2", null, "No question bank yet"), el("p", null, "Your questions appear here after the next sync."));
+    stageEl.replaceChildren(e); return;
   }
-  while (feed.children.length > 40) feed.firstChild.remove();       // keep the page light on long sessions
+  if (!bag.length) refill();
+  const q = bag.shift(); if (!q) return;
+  const old = stageEl.querySelector(".pcard:not(.leave)");
+  current = q;
+  const card = cardFor(q);
+  if (old) { old.classList.add("leave"); setTimeout(() => old.remove(), 300); }
+  else stageEl.replaceChildren();
+  stageEl.append(card);
+  requestAnimationFrame(() => requestAnimationFrame(() => card.classList.remove("enter")));
 }
 function startPractice() {
+  hud();
   if (practiceStarted) return;
   practiceStarted = true;
   const sel = document.getElementById("pfilter");
-  sel.onchange = () => { pfilter = sel.value; bag = []; document.getElementById("feed").replaceChildren(); more(5); };
-  more(5);
-  new IntersectionObserver(es => { if (es.some(e => e.isIntersecting) && tab === "practice") more(3); }, { rootMargin: "400px" })
-    .observe(document.getElementById("feedEnd"));
+  sel.onchange = () => { pfilter = sel.value; bag = []; nextCard(); };
+  document.getElementById("phard").onclick = () => { hard = !hard; combo = 0; try { localStorage.setItem("hard", hard ? "1" : "0"); } catch (e) {} hud(); };
+  nextCard();
 }
+// Icon picker (saved on the quiz page, so it follows you across devices)
+const iconBox = document.getElementById("icons");
+function showIcons() { iconBox.querySelectorAll("button").forEach(b => b.setAttribute("aria-checked", String(b.textContent === myIcon()))); }
+for (const ic of ICONS) {
+  const b = el("button", null, ic); b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-label", "Icon " + ic);
+  b.onclick = async () => {
+    STATS = { ...STATS, profile: { icon: ic } }; showIcons(); hud(); if (tab === "progress") renderProgress();
+    try { await db.collection("stats").doc("profile").set({ icon: ic }); } catch (e) {}
+  };
+  iconBox.append(b);
+}
+showIcons();
 
 async function boot() {
   if (!window.claude?.use) return;
@@ -636,7 +720,7 @@ async function boot() {
     if (qSeen && !Q.length) markChecked();
     if (tab === "progress") renderProgress();
   }, () => {});
-  db.collection("stats").onSnapshot(s => { STATS = Object.fromEntries(s.docs.map(d => [d.id, d.data()])); if (tab === "progress") renderProgress(); }, () => {});
+  db.collection("stats").onSnapshot(s => { STATS = Object.fromEntries(s.docs.map(d => [d.id, d.data()])); showIcons(); if (tab === "progress") renderProgress(); if (tab === "practice") hud(); }, () => {});
   db.collection("bank").onSnapshot(s => { buildPool(s.docs.map(d => d.data())); }, () => {});
   db.collection("questions").orderBy("order").onSnapshot(s => {
     Q = s.docs.map(d => ({ id: d.id, ...d.data() })); render();

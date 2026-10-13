@@ -12,7 +12,7 @@ Built on Karpathy's "LLM wiki" idea and the CoderCo *Learn it so it sticks* meth
 </p>
 <p align="center">
   <img src="docs/screenshots/5-progress.png" width="30%" alt="Progress tab: streak, level and XP, activity heatmap, mastery by ladder step, Sync now">
-  <img src="docs/screenshots/7-practice.png" width="30%" alt="Practice tab: endless feed of questions from the whole bank with a topic filter">
+  <img src="docs/screenshots/7-practice.png" width="30%" alt="Practice tab: one question at a time with level, XP, combo and hard mode">
   <img src="docs/screenshots/6-settings.png" width="30%" alt="Settings tab: theme picker with Dracula, Dracula Light, GitHub, Tokyo Night, Catppuccin, Nord and more">
 </p>
 <p align="center"><sub>Phone quiz: tap answers · instant feedback · optional written answers marked by Claude · where each topic moves next · Progress tab (example data)</sub></p>
@@ -77,9 +77,11 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 - Nothing to do? It says so. New questions load at the next sync.
 
 ### Practice tab (phone)
-- **Endless practice:** scroll through questions from your whole bank, as many as you like. Weaker topics come up more often; filter to shaky topics or one topic.
-- Earns **half XP** and counts for your streak. Misses are saved as weak spots on that topic. It never moves topics on the ladder, so your review schedule stays honest.
-- Finished your daily quiz? The results screen has a "Keep going" button straight into Practice.
+- **One question at a time** from your whole bank, as many as you like, with a smooth swap to the next. Weaker topics come up more often; filter to shaky topics or one topic.
+- Right: green glow, XP floats up, next question slides in. Wrong: quick shake, the right answer is shown, tap Next.
+- **Normal:** half XP (+1 even for a miss). **Hard mode:** full XP plus a combo bonus for answers in a row, but a miss costs XP.
+- Counts for your streak; misses are saved as weak spots. It never moves topics on the ladder, so your review schedule stays honest.
+- Pick **your icon** in Settings; it shows next to your level.
 
 ### Progress tab (phone)
 - **Streak:** days in a row you answered (or opened the quiz when nothing was due). One missed day a week is covered by an automatic freeze.

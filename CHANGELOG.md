@@ -2,6 +2,11 @@
 
 The quiz page shows its version under **Settings → About**. To update an existing setup, use [`UPDATE_PROMPT.md`](UPDATE_PROMPT.md).
 
+## 1.7.0
+- **Practice reworked:** one question at a time with swap animation, a green glow and floating XP when right, a shake when wrong.
+- **Hard mode:** full XP plus combo bonus when right, lose XP when wrong.
+- **Your icon:** pick one in Settings; shown with your level.
+
 ## 1.6.0
 - **Practice tab:** endless scroll of questions from your whole bank, weighted towards weaker topics, with a topic filter. Half XP, keeps your streak, misses become weak spots; never moves topics on the ladder.
 - Sync publishes question banks to the quiz page (only changed parts) and saves practice misses into the vault.
