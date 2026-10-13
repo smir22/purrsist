@@ -132,8 +132,10 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
 .float{position:absolute;right:18px;top:14px;font:700 1.05rem/1 var(--mono);pointer-events:none;animation:floatup 1s ease forwards}
 .float.up{color:var(--good)}.float.down{color:var(--bad)}
 .tbar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
-.tbar i{display:block;height:100%;background:var(--warn);transform-origin:left;animation:tick linear forwards}
-.tbar.stopped i{animation-play-state:paused}
+.tbar i{display:block;height:100%;background:var(--warn);transform-origin:left}
+.tbar i.low{background:var(--bad)}
+.clock{align-self:flex-end;font:700 1.4rem/1 var(--mono);color:var(--warn);font-variant-numeric:tabular-nums;margin-bottom:-6px}
+.clock.low{color:var(--bad)}
 .timeout{color:var(--bad);font-weight:600}
 @keyframes tick{from{transform:scaleX(1)}to{transform:scaleX(0);background:var(--bad)}}
 .combo{font:600 .72rem/1 var(--mono);color:var(--warn);letter-spacing:.06em;text-transform:uppercase}
@@ -600,7 +602,7 @@ tabBtns.forEach(b => b.onclick = () => showTab(b.dataset.t));
 showTab("quiz");
 
 // ---------- Practice: one question at a time, swap animation, hard mode, icon ----------
-const VERSION = "1.8.1";
+const VERSION = "1.9.0";
 document.getElementById("version").textContent = `Second Brain Kit v${VERSION}`;
 const ICONS = ["🧠", "🦉", "🐉", "🚀", "⚡", "🔥", "🐺", "🦊", "🐙", "🤖", "🛰️", "🗝️"];
 let POOL = [], bag = [], pfilter = "all", combo = 0, practiceStarted = false, current = null, hard = false;
@@ -664,14 +666,24 @@ function cardFor(q) {
     opts.append(b);
   });
   if (!hard) { c.append(opts); return c; }
-  const secs = hardSeconds(), tb = el("div", "tbar"), ti = el("i");
-  ti.style.animationDuration = secs + "s"; tb.append(ti);
-  c.append(el("span", "chip plain", `${secs} s`), tb, opts);
-  timer = setTimeout(() => answer(q, -1, c, null, opts, stage), secs * 1000);
+  const secs = hardSeconds(), tb = el("div", "tbar"), ti = el("i"), clock = el("span", "clock", `${secs}s`);
+  tb.append(ti); c.append(clock, tb, opts);
+  const end = Date.now() + secs * 1000;
+  const tick = () => {                       // JS-driven so it counts down on every phone, reduce-motion included
+    if (timer === null) return;
+    const left = Math.max(0, end - Date.now());
+    ti.style.transform = `scaleX(${left / (secs * 1000)})`;
+    clock.textContent = `${Math.ceil(left / 1000)}s`;
+    clock.classList.toggle("low", left <= 5000); ti.classList.toggle("low", left <= 5000);
+    if (left <= 0) { timer = null; answer(q, -1, c, null, opts, stage); return; }
+    timer = requestAnimationFrame(tick);
+  };
+  timer = 0; tick();
   return c;
 }
 function answer(q, i, c, b, opts, stage) {
-  clearTimeout(timer); timer = null;
+  if (c.dataset.done) return; c.dataset.done = "1";
+  if (timer) cancelAnimationFrame(timer); timer = null;
   c.querySelector(".tbar")?.classList.add("stopped");
   const ok = i === Number(q.correct), verdict = ok ? "correct" : "wrong";
   opts.querySelectorAll("button").forEach(x => { x.disabled = true; if (Number(x.dataset.i) === Number(q.correct)) x.classList.add("right"); });
@@ -693,7 +705,7 @@ function answer(q, i, c, b, opts, stage) {
     .set({ mode: "practice", page: q.page, topic: q.topic, kind: q.kind, verdict, missing: [q.options[q.correct]], at: new Date().toISOString() }).catch(() => {});
 }
 function nextCard() {
-  clearTimeout(timer); timer = null;
+  if (timer) cancelAnimationFrame(timer); timer = null;
   const stageEl = document.getElementById("pstage");
   if (!POOL.length) {
     current = null;

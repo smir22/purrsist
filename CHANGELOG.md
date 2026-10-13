@@ -2,6 +2,10 @@
 
 The quiz page shows its version under **Settings → About**. To update an existing setup, use [`UPDATE_PROMPT.md`](UPDATE_PROMPT.md).
 
+## 1.9.0
+- Hard mode shows a live countdown (seconds + shrinking bar, red under 5 s).
+- Ingest/question-bank rules: wrong options are near-misses, same length as the right one, so the answer can't be guessed by shape. Re-run **refresh banks** on old pages to get harder options.
+
 ## 1.8.1
 - Hard mode: no recall step; 15 s per question, 10 s after 5 right in a row.
 

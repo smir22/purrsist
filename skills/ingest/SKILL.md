@@ -43,6 +43,7 @@ Keep a tally: fixed vs still shaky.
 
 **Question bank:** `## Question bank` + a ```json block, 3 sets of `[recall, apply, teach]`:
 - every question: `{kind, prompt, options:[4], correct:<index>, answer, points}`. The quiz is tap-only by default, so all three kinds need options (vary the correct position); `answer`/`points` serve the optional written mode
+- Distractors: near-misses / common misconceptions that differ from the right answer in one key detail; same length and shape as the correct option (it must not be the longest — keep options short, detail goes in `answer`); none arguably correct
 - recall: key fact · apply: realistic prod / interview / design scenario · teach: "Explain X to a junior…" (as MCQ: which explanation is right)
 - `points[0]` = core idea. **Set 1 targets the still-shaky gaps**, then the other gaps, then the rest. Validate the JSON loads (3×3).
 - Pure facts (ports, flags, vocab) → also `anki/new-cards.txt`.
