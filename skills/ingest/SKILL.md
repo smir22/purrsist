@@ -47,6 +47,7 @@ Keep a tally: fixed vs still shaky.
 - recall: key fact · apply: realistic prod / interview / design scenario · teach: "Explain X to a junior…" (as MCQ: which explanation is right)
 - `points[0]` = core idea. **Set 1 targets the still-shaky gaps**, then the other gaps, then the rest. Validate the JSON loads (3×3).
 - Pure facts (ports, flags, vocab) → also `anki/new-cards.txt`.
+- After writing, publish banks for Practice (see vault `CLAUDE.md`).
 
 ## 6. Wrap up (3 lines)
 - Gaps: N fixed, N still shaky
