@@ -65,6 +65,9 @@ One-line purpose.
 
 (bullets / numbered steps — concrete, no prose walls)
 
+## Lesson
+(Learn-tab lesson: 4–7 `### ` steps that teach the topic from zero — see §6 lessons)
+
 ## Weak spots
 - what [Your name] got wrong + date (Claude-maintained; quiz targets these first)
 
@@ -108,6 +111,7 @@ After each page is quizzed:
    - Never ask about code the learner can't see ("in your serve.py…"). Either add a `code` field with the snippet (≤10 lines, ≤40 chars wide so it fits a phone) or make the question general. No trivia (ports, file paths, README steps)
    - every question also has `answer` (model answer) + `points` (key points, `points[0]` = core idea) for the optional "Write answers" mode
    - target weak spots first
+   - then write the page's `## Lesson` (see **lessons** below)
 6. **Day-0 check now:** one `teach` question per new concept in chat. Gaps → weak spots.
 7. Pure facts (vocab, ports, flags) → also Anki cards.
 8. Update `_index.md` files, append `log.md`.
@@ -138,12 +142,20 @@ Scoring (in sync.py): correct 1, partial 0.5, wrong 0 → avg ≥0.8 pass, ≥0.
 For material learned before the vault existed (course notes, a project repo, old chats) or files dropped in `raw/inbox/`.
 1. **Scan, don't write yet.** Read the source (READMEs, notes, code structure, tests, configs — skip lockfiles, data, vendored code). Propose a topic list: concept-sized (one idea per page), grouped, max ~25 per batch. Skip topics already in a `_index.md`.
 2. **Self-rate (one form):** per topic → *know it* / *shaky* / *skip*. Brand-new topics → suggest `/ingest` instead (recall works better when fresh).
-3. **Write in batches of 5:** concept page + question bank per topic (same format as ingest). When the source is the user's own project, make `apply` questions about THEIR code ("In your <project>, why does X…?"). Link pages to a `wiki/sources/` page for the project.
+3. **Write in batches of 5:** concept page + `## Lesson` + question bank per topic (same format as ingest). When the source is the user's own project, make `apply` questions about THEIR code, with the snippet in `code`. Link pages to a `wiki/sources/` page for the project.
 4. **Starting point:** *know it* → `stage: 2`, *shaky* → `stage: 0`.
 5. **Stagger reviews:** max 3 new topics due per day (shaky first), `next_review` spread over the following days, so the phone queue never floods.
 6. Publish banks for Practice (see below). Move processed `raw/inbox/` files to `raw/`. Update `_index.md` files, one `log.md` entry (`import | <source>: N topics`).
 
 **Publish banks for Practice** (after writing or changing question banks here): `python3 .sync/sync.py . --export-bank .sync/bank_out`, stage those files, then one ArtifactData `batch` of `set` writes to collection `bank` (doc id = file name without .json) using `file_path` — add `if_version` for shards that already exist (list `bank` with `out_dir` to get versions). Never paste the JSON by hand.
+
+### lessons  ("write lessons", or any `review: true` page without `## Lesson`; also part of ingest/import)
+The Learn tab teaches weak topics from the page's `## Lesson` (placed after the intro bullets, before `## Weak spots`). It must TEACH someone meeting the topic for the first time, on a phone, in 3–5 minutes. Not recall bullets.
+- **Format:** `## Lesson`, then 4–7 steps, each `### <short heading>` = one phone screen (~60–130 words + optional code). Only paragraphs, `- ` / `1. ` lists, fenced code with a language, **bold**, `inline code`. No tables, links, images or other headings.
+- **Code:** ≤12 lines, ≤40 chars per line (wrap by hand so it stays valid), `...` to elide. Quote the learner's REAL code (read the source repo); if there is none, a small realistic example labelled "for example". Never present invented code as theirs.
+- **Shape:** the problem (what breaks without it, a concrete scenario) → the idea (plain words, one analogy only if it helps) → how it works in their code, line by line → more detail as needed → gotchas (use the page's `## Weak spots`) → recap (3–4 bullets, key terms **bold**).
+- Explain every term on first use (assume DevOps background, new to the domain). Short sentences, no filler. Must cover everything the page's question bank asks. Accuracy over flourish.
+- After writing or changing lessons, publish banks for Practice (lessons travel with the bank; reading them costs no tokens).
 
 ### refresh banks  ("refresh banks", or when a sync reports refresh_bank / needs_bank)
 For each flagged page: write 1–2 new question sets (same format, all with options), targeting `## Weak spots` first, and append them to the page's question bank. Never edit sets already used.

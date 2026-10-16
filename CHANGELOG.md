@@ -2,6 +2,14 @@
 
 The quiz page shows its version under **Settings → About**. To update an existing setup, use [`UPDATE_PROMPT.md`](UPDATE_PROMPT.md).
 
+## 1.13.0
+- **Real lessons in Learn:** each topic gets a step-by-step `## Lesson` (problem → idea → your code line by line → gotchas → recap), 4–7 phone screens with Next/Back. New `lessons` operation in `CLAUDE.md`; `/ingest` and `import` write one for every new topic. Say **write lessons** to backfill an older vault.
+- Buttons in a row are now the same size.
+- Long inline code wraps instead of widening the page.
+
+## 1.12.0
+- Lesson renderer: steps, code blocks, lists, bold and inline code (safe, no HTML).
+
 ## 1.11.0
 - **Learn tab:** weak topics get a short lesson (summary, key points, your weak spots) built from the vault at sync, then 2 right in a row to clear. **Learn this** button after any miss in Quiz or Practice. Never moves the ladder.
 - sync.py ships lessons with the question bank and treats Learn answers like Practice.

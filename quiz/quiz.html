@@ -158,9 +158,13 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
 .lesson ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;line-height:1.45}
 .lesson h3{font:500 .72rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:6px 0 0}
 .lesson .weak li::marker{color:var(--warn)}.lesson .weak li{color:var(--ink)}
+.lesson p,.lesson li{overflow-wrap:anywhere}.lesson p{margin:0;line-height:1.6}.lesson ol{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;line-height:1.45}
+.lesson b{color:var(--ink)}.lesson .ic{font:.86em var(--mono);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:0 4px}
+.steps{display:flex;gap:4px}.steps i{flex:1;height:4px;border-radius:2px;background:var(--line)}.steps i.on{background:var(--accent)}
 .dots{display:flex;gap:6px;align-items:center;font:500 .72rem/1 var(--mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
 .dots i{width:10px;height:10px;border-radius:50%;background:var(--line)}.dots i.on{background:var(--good)}
-.row .ghost{min-height:36px;padding:6px 12px}
+.actions>button{flex:1 1 0;min-width:0;text-align:center}   /* every button in a row is the same size */
+.row>button{flex:0 0 88px;min-height:40px;padding:8px 10px;text-align:center}
 .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;min-width:0}
 .tile b{font:700 1.5rem/1 var(--display);font-variant-numeric:tabular-nums}
@@ -614,7 +618,7 @@ tabBtns.forEach(b => b.onclick = () => showTab(b.dataset.t));
 showTab("quiz");
 
 // ---------- Practice: one question at a time, swap animation, hard mode, icon ----------
-const VERSION = "1.11.0";
+const VERSION = "1.13.0";
 document.getElementById("version").textContent = `Second Brain Kit v${VERSION}`;
 const ICONS = ["🧠", "🦉", "🐉", "🚀", "⚡", "🔥", "🐺", "🦊", "🐙", "🤖", "🛰️", "🗝️"];
 let POOL = [], bag = [], pfilter = "all", combo = 0, practiceStarted = false, current = null, hard = false;
@@ -785,7 +789,54 @@ function openLesson(page) {
   lessonOpen = page; lstreak = 0; lused = new Set();
   showLesson(L);
 }
+// Tiny markdown → DOM (no innerHTML): paragraphs, - and 1. lists, ``` code, **bold**, `code`
+function inline(s) {
+  const f = document.createDocumentFragment();
+  s.split(/(\*\*[^*]+\*\*|`[^`]+`)/).forEach(p => {
+    if (!p) return;
+    if (p.startsWith("**") && p.endsWith("**")) f.append(el("b", null, p.slice(2, -2)));
+    else if (p.startsWith("`") && p.endsWith("`")) f.append(el("code", "ic", p.slice(1, -1)));
+    else f.append(p);
+  });
+  return f;
+}
+function md(body) {
+  const out = document.createDocumentFragment(), lines = body.split("\n");
+  let para = [], list = null;
+  const flush = () => { if (para.length) { const p = el("p"); p.append(inline(para.join(" "))); out.append(p); para = []; } list = null; };
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (l.startsWith("```")) { flush(); const code = []; while (++i < lines.length && !lines[i].startsWith("```")) code.push(lines[i]); out.append(el("pre", "code", code.join("\n"))); continue; }
+    const m = l.match(/^\s*(-|\d+\.)\s+(.*)$/);
+    if (m) {
+      if (para.length) flush();
+      const tag = m[1] === "-" ? "ul" : "ol";
+      if (!list || list.tagName.toLowerCase() !== tag) { list = el(tag); out.append(list); }
+      const li = el("li"); li.append(inline(m[2])); list.append(li); continue;
+    }
+    if (!l.trim()) { flush(); continue; }
+    list = null; para.push(l.trim());
+  }
+  flush(); return out;
+}
+const stepsOf = m => m.split(/^### /m).map(s => s.trim()).filter(Boolean).map(s => { const nl = s.indexOf("\n"); return { h: nl < 0 ? s : s.slice(0, nl), body: nl < 0 ? "" : s.slice(nl + 1) }; });
+function showStep(L, i) {
+  const S = stepsOf(L.m), s = S[i], c = el("section", "card lesson");
+  const meta = el("div", "meta"); meta.append(el("span", "chip", "Lesson"), el("span", "chip plain", `${L.t} · ${i + 1} of ${S.length}`));
+  const bar = el("div", "steps"); S.forEach((_, k) => bar.append(el("i", k <= i ? "on" : "")));
+  c.append(meta, bar, el("h2", "topic", s.h), md(s.body));
+  if (i === S.length - 1 && L.w?.length) {
+    const u = el("ul", "weak"); L.w.map(x => x.replace(/^\((practice|learn)\)\s*/, "")).forEach(x => u.append(el("li", null, x)));
+    c.append(el("h3", null, "Your weak spots"), u);
+  }
+  const last = i === S.length - 1;
+  const go = el("button", "primary", last ? "Test me" : "Next"); go.onclick = () => last ? check(L) : showStep(L, i + 1);
+  const back = el("button", "ghost", "Back"); back.onclick = () => i ? showStep(L, i - 1) : renderLearn();
+  const row = el("div", "actions"); row.append(go, back); c.append(row);
+  document.getElementById("learnView").replaceChildren(c); window.scrollTo(0, 0);
+}
 function showLesson(L) {
+  if (L.m) return showStep(L, 0);
   const c = el("section", "card lesson");
   const meta = el("div", "meta"); meta.append(el("span", "chip", "Lesson"), el("span", "chip plain", `Stage ${stageOf(L.p)}`));
   c.append(meta, el("h2", "topic", L.t));

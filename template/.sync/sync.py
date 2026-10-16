@@ -99,7 +99,8 @@ def lesson(text):
     keys = [clean(l[1:]) for l in lines if l.startswith("-")][:6]
     w = re.search(r"^## Weak spots\n(.*?)(?=^## |\Z)", text, re.M | re.S)
     weak = [clean(re.sub(r"^-\s*(\d{4}-\d\d-\d\d:\s*)?", "", l)) for l in (w.group(1) if w else "").splitlines() if l.strip().startswith("-")]
-    return {"s": summary, "k": keys, "w": list(dict.fromkeys(weak))[-5:]}
+    ls = re.search(r"^## Lesson\n(.*?)(?=^## |\Z)", text, re.M | re.S)     # full lesson: ### steps, written once per page
+    return {"s": summary, "k": keys, "w": list(dict.fromkeys(weak))[-5:], "m": ls.group(1).strip() if ls else ""}
 
 
 def entry(text, p, rel, sets):

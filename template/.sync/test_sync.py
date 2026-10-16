@@ -104,7 +104,9 @@ with tempfile.TemporaryDirectory() as d:
     # Learn tab: lesson = summary + key bullets + weak spots, shipped with the bank; learn answers act like practice
     from sync import lesson
     L = lesson("---\nx: 1\n---\n\n# T\n\nOne line summary with [[Link|alias]].\n\n- `a` first\n- second\n\n## Weak spots\n- 2026-10-11: gap one\n- 2026-10-12: (practice) gap two\n\n## My notes\n")
-    assert L == {"s": "One line summary with alias.", "k": ["a first", "second"], "w": ["gap one", "(practice) gap two"]}, L
+    assert L == {"s": "One line summary with alias.", "k": ["a first", "second"], "w": ["gap one", "(practice) gap two"], "m": ""}, L
+    L2 = lesson("# T\n\nsum\n\n## Lesson\n\n### Step one\nText.\n```py\nx = 1\n```\n\n### Step two\nMore.\n\n## Weak spots\n")
+    assert L2["m"].startswith("### Step one") and L2["m"].endswith("More.") and "Weak" not in L2["m"], L2
     assert json.loads((Path(d) / "bank_out" / files[0]).read_text())["topics"][0]["l"]["w"][:2] == ["gap1", "gap2"]
     lr = {"id": "l-1", "version": 1, "data": {"mode": "learn", "page": "wiki/tech/Topic A.md", "verdict": "wrong", "missing": ["learned gap"]}}
     run(v, {**queued, "answers": [lr]}, dt.datetime(2026, 10, 12, 12, 20))
