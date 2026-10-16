@@ -4,6 +4,18 @@ A learning system that stops you forgetting what you learn. Claude keeps your no
 
 Built on Karpathy's "LLM wiki" idea and the CoderCo *Learn it so it sticks* method: recall first, explain it like you're teaching, review on days 1 · 3 · 7 · 14 · 31.
 
+> **Install:** open a Claude Cowork task linked to your computer and say *"Set up https://github.com/smir22/second-brain-kit for me"*. Already set up? Type **`/update-second-brain`**.
+>
+> **Claude, reading this for a user:** to install, follow [`SETUP_PROMPT.md`](SETUP_PROMPT.md) step by step. If they already have a Second Brain vault (a `CLAUDE.md` with this schema or a `.sync/kit_version`), follow [`skills/update-second-brain/SKILL.md`](skills/update-second-brain/SKILL.md) instead.
+
+**What you get**
+- **Quiz:** tomorrow's due topics on your phone, multiple choice (or written answers marked by Claude), with code snippets where a question needs them.
+- **Learn:** your weak topics as step-by-step lessons (the problem, the idea, your own code line by line, your past mistakes), then 2 right in a row to clear.
+- **Practice:** endless questions from your whole bank, XP, combos and a timed hard mode.
+- **Progress:** streak, levels, a GitHub-style heatmap and mastery across the ladder.
+- **Settings:** 12 themes and your own icon.
+- **On your Mac:** `/ingest` after you learn something, `import` for older material, a nightly sync that moves topics up the ladder, calendar reminders, and `/update-second-brain` for new versions.
+
 <p align="center">
   <img src="docs/screenshots/1-question.png" width="23%" alt="A quiz question with four tap answers and the review ladder">
   <img src="docs/screenshots/2-feedback.png" width="23%" alt="Feedback after a correct answer">
@@ -16,7 +28,7 @@ Built on Karpathy's "LLM wiki" idea and the CoderCo *Learn it so it sticks* meth
   <img src="docs/screenshots/7-practice.png" width="23%" alt="Practice tab: one question at a time with level, XP, combo and hard mode">
   <img src="docs/screenshots/6-settings.png" width="23%" alt="Settings tab: theme picker with Dracula, Dracula Light, GitHub, Tokyo Night, Catppuccin, Nord and more">
 </p>
-<p align="center"><sub>Phone quiz: tap answers · instant feedback · optional written answers marked by Claude · where each topic moves next · Progress tab (example data)</sub></p>
+<p align="center"><sub>Quiz: tap answers · feedback · written answers marked by Claude · where each topic moves next<br>Learn lesson · Progress · Practice (hard mode) · Settings (example data)</sub></p>
 
 ---
 
@@ -26,7 +38,8 @@ Built on Karpathy's "LLM wiki" idea and the CoderCo *Learn it so it sticks* meth
 learn something ──► /ingest (Mac, Claude Cowork; typing or voice)
                       • brain-dump what you remember
                       • Claude finds your gaps and drills you on them
-                      • writes notes + a bank of quiz questions into Obsidian
+                      • writes notes, a step-by-step lesson and a bank of
+                        quiz questions into Obsidian
                               │
 evening sync (auto) ──► loads tomorrow's questions onto your quiz page
                       • adds an 08:00 "Quiz: …" calendar event
@@ -50,8 +63,8 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 **You need:** the Claude desktop app with Cowork, on a Mac (Windows untested), linked to your computer. Optional: the Google Calendar connector for reminders.
 
 1. Open a new Cowork task linked to your computer.
-2. Paste the prompt from [`SETUP_PROMPT.md`](SETUP_PROMPT.md).
-3. Answer its questions. It installs Obsidian if needed, builds your vault, publishes your quiz page and schedules the sync.
+2. Say *"Set up https://github.com/smir22/second-brain-kit for me"* (or paste the prompt from [`SETUP_PROMPT.md`](SETUP_PROMPT.md), which is what Claude follows).
+3. Answer its questions. It installs Obsidian if needed, builds your vault, publishes your quiz page, schedules the sync and installs `/ingest` and `/update-second-brain`.
 
 ---
 
@@ -65,7 +78,7 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 - In Cowork say **`/ingest`** (or "I just learned X"). Typing, dictation and voice mode all work.
 - **Dump** everything you remember first. Messy is fine. Where you stall is your gap.
 - **Drill:** Claude takes your gaps one at a time: asks a guiding question, explains if you're stuck, then you explain it back like you're teaching a junior.
-- **Notes + questions:** it writes the topic page, your weak spots and a question bank (the first questions target what's still shaky).
+- **Notes, lesson + questions:** it writes the topic page, a step-by-step lesson for the Learn tab, your weak spots and a question bank (the first questions target what's still shaky).
 - Your first review is tomorrow.
 
 ### Quiz (phone)
