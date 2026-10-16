@@ -105,6 +105,7 @@ After each page is quizzed:
    - `teach`: Feynman explain-back — "Explain X to a junior…" (as MCQ: "Which explanation is right?")
    - EVERY question has `options` (4, plausible distractors, varied correct position) + `correct` (index): the quiz is tap-only by default
    - Distractors: near-misses / common misconceptions that differ from the right answer in one key detail; same length and shape as the correct option (it must not be the longest — keep options short, detail goes in `answer`); none arguably correct
+   - Never ask about code the learner can't see ("in your serve.py…"). Either add a `code` field with the snippet (≤10 lines, ≤40 chars wide so it fits a phone) or make the question general. No trivia (ports, file paths, README steps)
    - every question also has `answer` (model answer) + `points` (key points, `points[0]` = core idea) for the optional "Write answers" mode
    - target weak spots first
 6. **Day-0 check now:** one `teach` question per new concept in chat. Gaps → weak spots.

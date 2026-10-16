@@ -2,6 +2,10 @@
 
 The quiz page shows its version under **Settings → About**. To update an existing setup, use [`UPDATE_PROMPT.md`](UPDATE_PROMPT.md).
 
+## 1.10.0
+- Questions can carry a `code` snippet, shown under the question. Rule: never ask about code you can't see; add the snippet or make the question general. No trivia (ports, paths).
+- Screenshots updated.
+
 ## 1.9.0
 - Hard mode shows a live countdown (seconds + shrinking bar, red under 5 s).
 - Ingest/question-bank rules: wrong options are near-misses, same length as the right one, so the answer can't be guessed by shape. Re-run **refresh banks** on old pages to get harder options.
