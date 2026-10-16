@@ -131,7 +131,9 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 
 ## Updating
 
-Set up on an older version? Your quiz page doesn't update itself when this repo changes. Paste [`UPDATE_PROMPT.md`](UPDATE_PROMPT.md) into a Cowork task: it pulls the latest kit, updates the sync script and rules, and republishes your quiz page **at the same link**, keeping your notes, scores and history. Check your version under **Settings → About**; see [`CHANGELOG.md`](CHANGELOG.md) for what's new.
+Your quiz page doesn't update itself when this repo changes. In a Cowork task linked to your computer, type **`/update-second-brain`**. It pulls the latest kit, shows what's new since your version, updates the sync script, rules and quiz page **at the same link**, and runs any one-time steps you missed. Your notes, scores and history are kept.
+
+No skill yet (set up before v1.14)? Paste [`UPDATE_PROMPT.md`](UPDATE_PROMPT.md) once; it installs the skill. Your version is under **Settings → About**; see [`CHANGELOG.md`](CHANGELOG.md) for what's new.
 
 ## Improving it with Claude
 

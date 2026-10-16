@@ -1,11 +1,17 @@
 # Changelog
 
-The quiz page shows its version under **Settings → About**. To update an existing setup, use [`UPDATE_PROMPT.md`](UPDATE_PROMPT.md).
+The quiz page shows its version under **Settings → About**. To update an existing setup, type `/update-second-brain` in Cowork (or paste [`UPDATE_PROMPT.md`](UPDATE_PROMPT.md) if you set up before v1.14).
+
+## 1.14.0
+- **`/update-second-brain` skill:** updating is one command. It reads your installed version (`.sync/kit_version`), shows what's new, and runs only the one-time steps you missed.
+- Each version below lists its **Update needs:** (one-time steps the update runs for you).
+- Update needs: nothing extra (the update installs the new skill).
 
 ## 1.13.0
 - **Real lessons in Learn:** each topic gets a step-by-step `## Lesson` (problem → idea → your code line by line → gotchas → recap), 4–7 phone screens with Next/Back. New `lessons` operation in `CLAUDE.md`; `/ingest` and `import` write one for every new topic. Say **write lessons** to backfill an older vault.
 - Buttons in a row are now the same size.
 - Long inline code wraps instead of widening the page.
+- Update needs: run `write lessons` for every `review: true` page without a `## Lesson`, then publish banks.
 
 ## 1.12.0
 - Lesson renderer: steps, code blocks, lists, bold and inline code (safe, no HTML).
@@ -15,6 +21,7 @@ The quiz page shows its version under **Settings → About**. To update an exist
 - sync.py ships lessons with the question bank and treats Learn answers like Practice.
 
 ## 1.10.0
+- Update needs: fix questions that mention code you can't see (add the snippet as `code`, or make them general), then publish banks.
 - Questions can carry a `code` snippet, shown under the question. Rule: never ask about code you can't see; add the snippet or make the question general. No trivia (ports, paths).
 - Screenshots updated.
 

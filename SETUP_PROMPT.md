@@ -43,7 +43,7 @@ Then write the task's ID into the quiz page's database so its **Sync now** butto
 
 Then run the task once now. If the run can't find the vault, tell me to add my vault folder in the task's settings and run it again. Once a run has worked, tell me I can switch the task's model to Haiku in its settings (it only moves JSON around).
 
-**7. Ingest skill:** propose `skills/ingest/SKILL.md` from the kit as a new skill named `ingest` (replace the vault path in it with mine) so I can type `/ingest`.
+**7. Skills:** propose `skills/ingest/SKILL.md` from the kit as a new skill named `ingest` (replace the vault path in it with mine) so I can type `/ingest`, and `skills/update-second-brain/SKILL.md` as `update-second-brain` so future updates are one command. Check the vault's `.sync/kit_version` matches the kit's `VERSION`.
 
 **8. Optional extras — offer each in one line, set up the ones I pick:**
 - Obsidian Git plugin for automatic backups (keep the repo private)
