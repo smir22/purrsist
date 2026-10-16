@@ -11,9 +11,10 @@ Built on Karpathy's "LLM wiki" idea and the CoderCo *Learn it so it sticks* meth
   <img src="docs/screenshots/4-results.png" width="23%" alt="Results screen showing where each topic moves on the ladder">
 </p>
 <p align="center">
-  <img src="docs/screenshots/5-progress.png" width="30%" alt="Progress tab: streak, level and XP, activity heatmap, mastery by ladder step, Sync now">
-  <img src="docs/screenshots/7-practice.png" width="30%" alt="Practice tab: one question at a time with level, XP, combo and hard mode">
-  <img src="docs/screenshots/6-settings.png" width="30%" alt="Settings tab: theme picker with Dracula, Dracula Light, GitHub, Tokyo Night, Catppuccin, Nord and more">
+  <img src="docs/screenshots/8-learn.png" width="23%" alt="Learn tab: a short lesson for a weak topic with key points and your weak spots">
+  <img src="docs/screenshots/5-progress.png" width="23%" alt="Progress tab: streak, level and XP, activity heatmap, mastery by ladder step, Sync now">
+  <img src="docs/screenshots/7-practice.png" width="23%" alt="Practice tab: one question at a time with level, XP, combo and hard mode">
+  <img src="docs/screenshots/6-settings.png" width="23%" alt="Settings tab: theme picker with Dracula, Dracula Light, GitHub, Tokyo Night, Catppuccin, Nord and more">
 </p>
 <p align="center"><sub>Phone quiz: tap answers · instant feedback · optional written answers marked by Claude · where each topic moves next · Progress tab (example data)</sub></p>
 
@@ -75,6 +76,13 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 - **Strictness:** Lenient / Balanced / Strict (shows in Write mode).
 - **Done screen:** shows where each topic moves on the ladder.
 - Nothing to do? It says so. New questions load at the next sync.
+
+### Learn tab (phone)
+- Lists your weak topics (stage 0–1, missed questions, logged weak spots), most urgent first.
+- Tap one for a short lesson: the page's summary, key points and your weak spots. Built from your vault at sync, so it costs no tokens.
+- **Got it, test me** → questions on that topic. Get **2 right in a row** to clear it; a miss shows why and sends you back to the lesson.
+- Missing a question in Quiz or Practice shows a **Learn this** button that opens that topic's lesson.
+- Learn never moves the ladder (only Quiz does); misses still become weak spots.
 
 ### Practice tab (phone)
 - **One question at a time** from your whole bank, as many as you like, with a smooth swap to the next. Weaker topics come up more often; filter to shaky topics or one topic.

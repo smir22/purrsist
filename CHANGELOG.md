@@ -2,6 +2,10 @@
 
 The quiz page shows its version under **Settings → About**. To update an existing setup, use [`UPDATE_PROMPT.md`](UPDATE_PROMPT.md).
 
+## 1.11.0
+- **Learn tab:** weak topics get a short lesson (summary, key points, your weak spots) built from the vault at sync, then 2 right in a row to clear. **Learn this** button after any miss in Quiz or Practice. Never moves the ladder.
+- sync.py ships lessons with the question bank and treats Learn answers like Practice.
+
 ## 1.10.0
 - Questions can carry a `code` snippet, shown under the question. Rule: never ask about code you can't see; add the snippet or make the question general. No trivia (ports, paths).
 - Screenshots updated.

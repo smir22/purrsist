@@ -154,7 +154,13 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
 .skin .sw{display:flex;height:22px;border-radius:6px;overflow:hidden;border:1px solid var(--line)}
 .skin .sw i{flex:1}
 .skin span{font-size:.85rem;font-weight:500}
-.tabs{align-self:stretch}.tabs button{flex:1}
+.tabs{align-self:stretch}.tabs button{flex:1;padding:6px 4px}
+.lesson ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;line-height:1.45}
+.lesson h3{font:500 .72rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:6px 0 0}
+.lesson .weak li::marker{color:var(--warn)}.lesson .weak li{color:var(--ink)}
+.dots{display:flex;gap:6px;align-items:center;font:500 .72rem/1 var(--mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.dots i{width:10px;height:10px;border-radius:50%;background:var(--line)}.dots i.on{background:var(--good)}
+.row .ghost{min-height:36px;padding:6px 12px}
 .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;min-width:0}
 .tile b{font:700 1.5rem/1 var(--display);font-variant-numeric:tabular-nums}
@@ -184,6 +190,7 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
     <div class="bar" aria-hidden="true"><i id="prog"></i></div>
     <div class="mode tabs" id="tabs" role="tablist" aria-label="View">
       <button type="button" data-t="quiz">Quiz</button>
+      <button type="button" data-t="learn">Learn</button>
       <button type="button" data-t="practice">Practice</button>
       <button type="button" data-t="progress">Progress</button>
       <button type="button" data-t="settings">Settings</button>
@@ -206,6 +213,7 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
     </section>
   </main>
   </div>
+  <section id="learnView" class="view" hidden></section>
   <section id="progressView" class="view" hidden></section>
   <section id="practiceView" class="view" hidden>
     <section class="card hud">
@@ -249,6 +257,7 @@ const SCORE = { correct: 1, partial: 0.5, wrong: 0 };
 const main = document.getElementById("main");
 let Q = [], A = new Map(), db = null, sample = null;
 let shownId = null, lastKey = "", busy = false, selfGrade = null;
+let LESSONS = {}, lessonOpen = null, lstreak = 0, lused = new Set();   // Learn tab
 
 const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
 
@@ -409,7 +418,7 @@ function feedback(q, a) {
   if (a.tip && a.tip !== "Self-marked") f.append(el("h3", null, "Make it stronger"), el("p", null, a.tip));
   const next = el("button", "primary", Q.some(x => !A.has(x.id)) ? "Next question" : "See results");
   next.onclick = () => { shownId = null; render(); };
-  const row = el("div", "actions"); row.append(next); f.append(row);
+  const row = el("div", "actions"); row.append(next); if (a.verdict !== "correct") learnBtn(q, row); f.append(row);
   return f;
 }
 
@@ -562,8 +571,9 @@ const tabBtns = document.querySelectorAll("#tabs button");
 function showTab(t) {
   tab = t;
   tabBtns.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.t === t)));
-  for (const v of ["quiz", "practice", "progress", "settings"]) document.getElementById(v + "View").hidden = t !== v;
+  for (const v of ["quiz", "learn", "practice", "progress", "settings"]) document.getElementById(v + "View").hidden = t !== v;
   if (t === "practice") startPractice();
+  if (t === "learn" && !lessonOpen) renderLearn();
   if (t === "progress") renderProgress();
 }
 
@@ -604,7 +614,7 @@ tabBtns.forEach(b => b.onclick = () => showTab(b.dataset.t));
 showTab("quiz");
 
 // ---------- Practice: one question at a time, swap animation, hard mode, icon ----------
-const VERSION = "1.10.0";
+const VERSION = "1.11.0";
 document.getElementById("version").textContent = `Second Brain Kit v${VERSION}`;
 const ICONS = ["🧠", "🦉", "🐉", "🚀", "⚡", "🔥", "🐺", "🦊", "🐙", "🤖", "🛰️", "🗝️"];
 let POOL = [], bag = [], pfilter = "all", combo = 0, practiceStarted = false, current = null, hard = false;
@@ -630,7 +640,8 @@ function hud() {
     : "Half XP, keeps your streak. Misses become weak spots; the ladder never moves.";
 }
 function buildPool(shards) {
-  POOL = [];
+  POOL = []; LESSONS = {};
+  for (const sh of shards) for (const t of sh.topics || []) if (t.l) LESSONS[t.p] = { t: t.t, p: t.p, ...t.l };
   for (const sh of shards) for (const t of sh.topics || []) (t.sets || []).flat().forEach((q, i) => {
     if (Array.isArray(q.options) && q.options.length) POOL.push({ ...q, topic: t.t, page: t.p, key: t.p + "#" + i });
   });
@@ -640,6 +651,7 @@ function buildPool(shards) {
     .map(([v, l]) => { const o = el("option", null, l); o.value = v; return o; }));
   sel.value = [...sel.options].some(o => o.value === cur) ? cur : "all";
   if (tab === "practice" && !current) nextCard();
+  if (tab === "learn" && !lessonOpen) renderLearn();
 }
 function refill() {           // weighted shuffle: low ladder steps come up more often
   let pool = POOL;
@@ -653,6 +665,7 @@ function refill() {           // weighted shuffle: low ladder steps come up more
 const missedSet = () => { try { return new Set(JSON.parse(localStorage.getItem("missed") || "[]")); } catch (e) { return new Set(); } };
 function markMissed(key, missed) {            // per device: questions missed in practice come back more often in hard mode
   const m = missedSet(); missed ? m.add(key) : m.delete(key);
+  if (missed) unclear(key.split("#")[0]);
   try { localStorage.setItem("missed", JSON.stringify([...m].slice(-300))); } catch (e) {}
 }
 let timer = null;
@@ -703,7 +716,7 @@ function answer(q, i, c, b, opts, stage) {
   if (i === -1) c.append(el("p", "hint timeout", "Time's up."));
   c.append(el("p", "hint", q.answer || q.options[q.correct]));
   const nx = el("button", "primary", "Next"); nx.onclick = nextCard;
-  const row = el("div", "actions"); row.append(nx); c.append(row);
+  const row = el("div", "actions"); row.append(nx); learnBtn(q, row); c.append(row);
   db.collection("answers").doc(`p-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`)
     .set({ mode: "practice", page: q.page, topic: q.topic, kind: q.kind, verdict, missing: [q.options[q.correct]], at: new Date().toISOString() }).catch(() => {});
 }
@@ -733,6 +746,105 @@ function startPractice() {
   sel.onchange = () => { pfilter = sel.value; bag = []; nextCard(); };
   document.getElementById("phard").onclick = () => { hard = !hard; combo = 0; try { localStorage.setItem("hard", hard ? "1" : "0"); } catch (e) {} hud(); bag = []; nextCard(); };
   nextCard();
+}
+
+// ---------- Learn: short lesson for a weak topic, then 2 right in a row to clear it ----------
+const NEED = 2;                                     // 2 in a row: 1 right out of 4 options is a 25% guess
+const clearedMap = () => { try { return JSON.parse(localStorage.getItem("learned") || "{}"); } catch (e) { return {}; } };
+const setCleared = m => { try { localStorage.setItem("learned", JSON.stringify(m)); } catch (e) {} };
+function unclear(page) { const m = clearedMap(); if (m[page]) { delete m[page]; setCleared(m); } }
+function learnBtn(q, row) {
+  const L = LESSONS[q.page] || Object.values(LESSONS).find(x => x.t === q.topic); if (!L) return;
+  const b = el("button", "ghost", "Learn this"); b.onclick = () => { showTab("learn"); openLesson(L.p); }; row.append(b);
+}
+function weakTopics() {
+  const missed = [...missedSet()].map(k => k.split("#")[0]);
+  const miss = p => missed.filter(x => x === p).length;
+  return Object.values(LESSONS).filter(L => stageOf(L.p) <= 1 || miss(L.p) || L.w?.length)
+    .map(L => ({ ...L, stage: stageOf(L.p), miss: miss(L.p), done: !!clearedMap()[L.p] }))
+    .sort((a, b) => a.done - b.done || a.stage - b.stage || b.miss - a.miss || (b.w?.length || 0) - (a.w?.length || 0));
+}
+function renderLearn() {
+  lessonOpen = null;
+  const v = document.getElementById("learnView"), c = el("section", "card");
+  const list = weakTopics();
+  c.append(el("h2", "topic", "Learn"), el("p", "hint", "Weak topics first. Read the short lesson, then get 2 right in a row to clear it. Doesn't move the ladder."));
+  if (!list.length) { c.append(el("p", null, Object.keys(LESSONS).length ? "Nothing weak right now. Nice." : "Lessons appear after the next sync.")); v.replaceChildren(c); return; }
+  const rows = el("div", "rows");
+  for (const L of list) {
+    const row = el("div", "row"), d = el("div");
+    const bits = [`Stage ${L.stage}`]; if (L.w?.length) bits.push(`${L.w.length} weak spot${L.w.length === 1 ? "" : "s"}`); if (L.miss) bits.push(`${L.miss} missed`);
+    d.append(el("b", null, L.t), el("small", null, L.done ? "Cleared ✓" : bits.join(" · ")));
+    const b = el("button", L.done ? "ghost" : "primary", L.done ? "Again" : "Learn"); b.onclick = () => openLesson(L.p);
+    row.append(d, b); rows.append(row);
+  }
+  c.append(rows); v.replaceChildren(c);
+}
+function openLesson(page) {
+  const L = LESSONS[page]; if (!L) return renderLearn();
+  lessonOpen = page; lstreak = 0; lused = new Set();
+  showLesson(L);
+}
+function showLesson(L) {
+  const c = el("section", "card lesson");
+  const meta = el("div", "meta"); meta.append(el("span", "chip", "Lesson"), el("span", "chip plain", `Stage ${stageOf(L.p)}`));
+  c.append(meta, el("h2", "topic", L.t));
+  if (L.s) c.append(el("p", null, L.s));
+  const list = (title, items, cls) => { if (!items?.length) return; const u = el("ul", cls); items.forEach(x => u.append(el("li", null, x))); c.append(el("h3", null, title), u); };
+  list("Key points", L.k); list("Your weak spots", L.w?.map(x => x.replace(/^\((practice|learn)\)\s*/, "")), "weak");
+  const go = el("button", "primary", "Got it, test me"); go.onclick = () => check(L);
+  const back = el("button", "ghost", "Back"); back.onclick = renderLearn;
+  const row = el("div", "actions"); row.append(go, back); c.append(row);
+  document.getElementById("learnView").replaceChildren(c); window.scrollTo(0, 0);
+}
+function dots() { const d = el("div", "dots"); for (let i = 0; i < NEED; i++) d.append(el("i", i < lstreak ? "on" : "")); d.append(el("span", null, `${lstreak} of ${NEED} in a row`)); return d; }
+function check(L) {
+  const all = POOL.filter(q => q.page === L.p);
+  if (!all.length) return renderLearn();
+  let left = all.filter(q => !lused.has(q.key));
+  if (!left.length) { lused = new Set(); left = all; }
+  const missed = missedSet();
+  left.sort((a, b) => missed.has(b.key) - missed.has(a.key) || Math.random() - .5);   // the questions you missed come first
+  const q = left[0]; lused.add(q.key);
+  const c = el("section", "card"), stage = stageOf(L.p);
+  const meta = el("div", "meta"); meta.append(el("span", "chip", KIND[q.kind] || q.kind), el("span", "chip plain", L.t));
+  const opts = el("div", "opts");
+  const dd = dots(); c.style.position = "relative";
+  c.append(meta, dd, el("p", "prompt", q.prompt));
+  if (q.code) c.append(el("pre", "code", q.code));
+  shuffled(q.options.length).forEach(i => {
+    const b = el("button", null, q.options[i]); b.dataset.i = i;
+    b.onclick = () => {
+      if (c.dataset.done) return; c.dataset.done = "1";
+      const ok = i === Number(q.correct), verdict = ok ? "correct" : "wrong";
+      opts.querySelectorAll("button").forEach(x => { x.disabled = true; if (Number(x.dataset.i) === Number(q.correct)) x.classList.add("right"); });
+      if (!ok) b.classList.add("wrong");
+      lstreak = ok ? lstreak + 1 : 0; markMissed(q.key, !ok); dd.replaceWith(dots());
+      const delta = practiceXP(ok, stage) + (ok && lstreak >= NEED ? 10 : 0);
+      writeDay(d => ({ ...d, n: d.n + 1, [verdict[0]]: (d[verdict[0]] || 0) + 1, xp: d.xp + delta }));
+      db.collection("answers").doc(`l-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`)
+        .set({ mode: "learn", page: q.page, topic: q.topic, kind: q.kind, verdict, missing: [q.options[q.correct]], at: new Date().toISOString() }).catch(() => {});
+      c.classList.add(ok ? "good" : "bad");
+      c.append(el("span", "float " + (delta >= 0 ? "up" : "down"), `+${delta} XP`));
+      const row = el("div", "actions");
+      if (ok && lstreak >= NEED) {
+        const m = clearedMap(); m[L.p] = new Date().toISOString().slice(0, 10); setCleared(m);
+        c.append(el("p", "hint", `Cleared ✓ ${L.t}. It still comes back on schedule in Quiz.`));
+        const nxt = weakTopics().find(x => !x.done);
+        if (nxt) { const b2 = el("button", "primary", "Next weak topic"); b2.onclick = () => openLesson(nxt.p); row.append(b2); }
+        const bl = el("button", nxt ? "ghost" : "primary", "Back to list"); bl.onclick = renderLearn; row.append(bl);
+      } else if (ok) {
+        const b2 = el("button", "primary", "Next question"); b2.onclick = () => check(L); row.append(b2);
+      } else {
+        c.append(el("p", "hint", q.answer || q.options[q.correct]));
+        const b2 = el("button", "primary", "Re-read the lesson"); b2.onclick = () => showLesson(L); row.append(b2);
+      }
+      c.append(row);
+    };
+    opts.append(b);
+  });
+  c.append(opts);
+  document.getElementById("learnView").replaceChildren(c); window.scrollTo(0, 0);
 }
 // Icon picker (saved on the quiz page, so it follows you across devices)
 const iconBox = document.getElementById("icons");

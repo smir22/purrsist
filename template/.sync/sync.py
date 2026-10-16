@@ -87,6 +87,25 @@ def title(text, fallback):
     return m.group(1).strip() if m else fallback
 
 
+def clean(s):
+    return re.sub(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]", lambda m: m.group(2) or m.group(1), s).replace("`", "").strip()
+
+
+def lesson(text):
+    """Learn-tab lesson: summary line + key bullets (title to first ##) and the latest weak spots. No LLM."""
+    m = re.search(r"^# [^\n]+\n(.*?)(?=^## |\Z)", text, re.M | re.S)
+    lines = [l.strip() for l in (m.group(1) if m else "").splitlines() if l.strip()]
+    summary = next((clean(l) for l in lines if not l.startswith("-")), "")
+    keys = [clean(l[1:]) for l in lines if l.startswith("-")][:6]
+    w = re.search(r"^## Weak spots\n(.*?)(?=^## |\Z)", text, re.M | re.S)
+    weak = [clean(re.sub(r"^-\s*(\d{4}-\d\d-\d\d:\s*)?", "", l)) for l in (w.group(1) if w else "").splitlines() if l.strip().startswith("-")]
+    return {"s": summary, "k": keys, "w": list(dict.fromkeys(weak))[-5:]}
+
+
+def entry(text, p, rel, sets):
+    return {"t": title(text, p.stem), "p": rel, "sets": sets, "l": lesson(text)}
+
+
 def int0(v):
     try:
         return int(v)
@@ -138,12 +157,12 @@ def run(vault, inbox, now, force_bank=False):
         if i in qs:
             continue
         d = a["data"]
-        if d.get("mode") == "practice" and i not in done:
+        if d.get("mode") in ("practice", "learn") and i not in done:
             practiced += 1
             p = vault / d.get("page", "")
             if d.get("page") and p.exists() and d.get("verdict") != "correct":   # practice never moves the ladder,
                 text, _ = read_page(p)                                            # but misses become weak spots
-                p.write_text(add_weak(text, [f"(practice) {m}" for m in (d.get("missing") or [])[:2]], day))
+                p.write_text(add_weak(text, [f"({d['mode']}) {m}" for m in (d.get("missing") or [])[:2]], day))
             done.add(i)
         writes.append({"op": "delete", "collection": "answers", "doc_id": i, "if_version": a["version"]})
     done_f.write_text("\n".join(sorted(done)) + "\n")
@@ -162,7 +181,7 @@ def run(vault, inbox, now, force_bank=False):
             by_page[rel] = int0(meta.get("stage"))
             sets = bank(text)
             if sets:
-                shards[zlib.crc32(rel.encode()) % BANK_SHARDS].append({"t": title(text, p.stem), "p": rel, "sets": sets})
+                shards[zlib.crc32(rel.encode()) % BANK_SHARDS].append(entry(text, p, rel, sets))
             if rel in queued:
                 continue
             try:
@@ -260,7 +279,7 @@ def export_bank(vault, out_dir):
             sets = bank(text)
             if meta.get("review") == "true" and sets:
                 rel = p.relative_to(vault).as_posix()
-                shards[zlib.crc32(rel.encode()) % BANK_SHARDS].append({"t": title(text, p.stem), "p": rel, "sets": sets})
+                shards[zlib.crc32(rel.encode()) % BANK_SHARDS].append(entry(text, p, rel, sets))
     hashes, files = {}, []
     for k, topics in enumerate(shards):
         if not topics:
