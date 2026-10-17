@@ -5,4 +5,4 @@ Append-only. `## [YYYY-MM-DD] op | title`. Last 5: `grep "^## \[" log.md | tail 
 ---
 
 ## [YYYY-MM-DD] maintenance | Vault founded
-Created from second-brain-kit.
+Created from Purrsist (github.com/smir22/purrsist).

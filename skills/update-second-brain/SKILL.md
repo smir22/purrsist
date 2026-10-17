@@ -1,13 +1,13 @@
 ---
 name: update-second-brain
-description: Update the user's Second Brain (vault rules, sync script, quiz page, skills) to the latest second-brain-kit release, keeping their notes, scores and history. Use for /update-second-brain or "update my second brain".
+description: Update the user's Second Brain (vault rules, sync script, quiz page, skills) to the latest Purrsist (second-brain-kit) release, keeping their notes, scores and history. Use for /update-second-brain or "update my second brain".
 ---
 
 # Update Second Brain
 
 Confirm each step in one short line. Never touch notes, `## My notes`, `raw/`, scores or history.
 
-1. **Latest kit:** `git pull` in the user's clone of https://github.com/smir22/second-brain-kit (ask where it is; if none, clone it to a scratch folder). The new version is `const VERSION` in `quiz/quiz.html`.
+1. **Latest kit:** `git pull` in the user's clone of https://github.com/smir22/purrsist (ask where it is; if none, clone it to a scratch folder). The new version is `const VERSION` in `quiz/quiz.html`.
 2. **Vault + installed version:** find the vault (ask if unknown; request folder access). Installed version = `.sync/kit_version`. Missing → ask the user for the version under **Settings → About** on their quiz page (no Settings tab = 1.0). Same as the new version → say "Already up to date" and stop.
 3. **What's new:** read the `CHANGELOG.md` entries newer than the installed version. Tell the user in at most 3 bullets. Collect every **Update needs:** line from those entries.
 4. **Sync script:** copy `template/.sync/sync.py` and `test_sync.py` over the vault's. Never touch `config.json`, `processed.txt`, `calendar.txt` or `bank_hash.json`. Run `python3 .sync/test_sync.py` in the vault; it must print `ok`.

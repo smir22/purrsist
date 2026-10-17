@@ -3,7 +3,7 @@
 The quiz page shows its version under **Settings → About**. To update an existing setup, type `/update-second-brain` in Cowork (or paste [`UPDATE_PROMPT.md`](UPDATE_PROMPT.md) if you set up before v1.14).
 
 ## 1.17.0
-- The app is now called **Purrsist**. All screenshots retaken.
+- The app is now called **Purrsist**, and the repo moved to github.com/smir22/purrsist (the old second-brain-kit link redirects). All screenshots retaken.
 - Update needs: nothing extra.
 
 ## 1.16.0

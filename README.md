@@ -9,7 +9,7 @@
 
 Built on [Hussein Malki's obsidian-llm-brain](https://github.com/Husseinmalki/obsidian-llm-brain) (the vault, `CLAUDE.md` schema and index/log approach), Karpathy's "LLM wiki" idea and the CoderCo *Learn it so it sticks* method: recall first, explain it like you're teaching, review on days 1 · 3 · 7 · 14 · 31.
 
-> **Install:** open a Claude Cowork task linked to your computer and say *"Set up https://github.com/smir22/second-brain-kit for me"*. Already set up? Type **`/update-second-brain`**.
+> **Install:** open a Claude Cowork task linked to your computer and say *"Set up https://github.com/smir22/purrsist for me"*. Already set up? Type **`/update-second-brain`**.
 >
 > **Claude, reading this for a user:** to install, follow [`SETUP_PROMPT.md`](SETUP_PROMPT.md) step by step. If they already have a Second Brain vault (a `CLAUDE.md` with this schema or a `.sync/kit_version`), follow [`skills/update-second-brain/SKILL.md`](skills/update-second-brain/SKILL.md) instead.
 
@@ -69,7 +69,7 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 **You need:** the Claude desktop app with Cowork, on a Mac (Windows untested), linked to your computer. Optional: the Google Calendar connector for reminders.
 
 1. Open a new Cowork task linked to your computer.
-2. Say *"Set up https://github.com/smir22/second-brain-kit for me"* (or paste the prompt from [`SETUP_PROMPT.md`](SETUP_PROMPT.md), which is what Claude follows).
+2. Say *"Set up https://github.com/smir22/purrsist for me"* (or paste the prompt from [`SETUP_PROMPT.md`](SETUP_PROMPT.md), which is what Claude follows).
 3. Answer its questions. It installs Obsidian if needed, builds your vault, publishes your quiz page, schedules the sync and installs `/ingest` and `/update-second-brain`.
 
 ---

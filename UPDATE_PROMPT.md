@@ -7,4 +7,4 @@ Already set up and want the latest version?
 
 ---
 
-Update my Second Brain to the latest https://github.com/smir22/second-brain-kit. Get the kit (`git pull` in my clone, or clone it fresh), then follow `skills/update-second-brain/SKILL.md` from the kit exactly, step by step, confirming each step in one line. My vault has no `.sync/kit_version` yet, so ask me for the version under Settings → About on my quiz page (no Settings tab = v1.0). At the end, make sure you propose `update-second-brain` as a new skill for me.
+Update my Second Brain to the latest https://github.com/smir22/purrsist. Get the kit (`git pull` in my clone, or clone it fresh), then follow `skills/update-second-brain/SKILL.md` from the kit exactly, step by step, confirming each step in one line. My vault has no `.sync/kit_version` yet, so ask me for the version under Settings → About on my quiz page (no Settings tab = v1.0). At the end, make sure you propose `update-second-brain` as a new skill for me.

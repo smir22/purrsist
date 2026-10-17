@@ -4,7 +4,7 @@ Paste everything below the line into a new **Claude Cowork** task that is linked
 
 ---
 
-Set up the Second Brain Kit for me from https://github.com/smir22/second-brain-kit. Work step by step, confirm each step in one short line, and keep explanations brief.
+Set up Purrsist (the Second Brain Kit) for me from https://github.com/smir22/purrsist. Work step by step, confirm each step in one short line, and keep explanations brief.
 
 **1. Ask me first (one form):**
 - My name
