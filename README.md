@@ -16,7 +16,7 @@ Built on [Hussein Malki's obsidian-llm-brain](https://github.com/Husseinmalki/ob
 > **Claude, reading this for a user:** to install, follow [`SETUP_PROMPT.md`](SETUP_PROMPT.md) step by step. If they already have a Second Brain vault (a `CLAUDE.md` with this schema or a `.sync/kit_version`), follow [`skills/update-second-brain/SKILL.md`](skills/update-second-brain/SKILL.md) instead.
 
 **What you get**
-- **Quiz:** tomorrow's due topics on your phone, multiple choice (or written answers marked by Claude), with code snippets where a question needs them. Works offline and lets you flag bad questions.
+- **Quiz:** tomorrow's due topics on your phone or Mac, multiple choice (or written answers marked by Claude), with code snippets where a question needs them. Works offline and lets you flag bad questions.
 - **Learn:** your weak topics as step-by-step lessons (the problem, the idea, your own code line by line, your past mistakes), then 2 right in a row to clear.
 - **Practice:** endless questions from your whole bank, XP, combos and a timed hard mode.
 - **Progress:** streak, levels, a GitHub-style heatmap and mastery across the ladder.
@@ -96,7 +96,7 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 - **Notes, lesson + questions:** it writes the topic page, a step-by-step lesson for the Learn tab, your weak spots and a question bank (the first questions target what's still shaky).
 - Your first review is tomorrow.
 
-### Quiz (phone)
+### Quiz (phone or Mac)
 - **Open it:** tap the link in the 08:00 calendar event, or the pinned page in the Claude app sidebar. Tip: open it in Safari (signed in to claude.ai) → Share → **Add to Home Screen** for one-tap access, like an app.
 - **Tap answers (default):** every question is multiple choice. No typing, works one-handed.
 - **Write answers (optional):** switch at the top. Why / apply / teach questions become a text box: type, or tap the keyboard mic and talk. Claude marks it and shows what you got, what's missing, the model answer and a tip.
