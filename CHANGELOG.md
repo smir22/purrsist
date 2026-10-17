@@ -2,6 +2,14 @@
 
 The quiz page shows its version under **Settings → About**. To update an existing setup, type `/update-second-brain` in Cowork (or paste [`UPDATE_PROMPT.md`](UPDATE_PROMPT.md) if you set up before v1.14).
 
+## 1.17.0
+- The app is now called **Purrsist**. All screenshots retaken.
+- Update needs: nothing extra.
+
+## 1.16.0
+- **The cat:** a text-art cat under the title shows your status and reacts to each answer in Quiz, Learn and Practice (right, nearly, wrong, combo, timeout, cleared), with a big pop-up on level-up.
+- Update needs: nothing extra.
+
 ## 1.15.1
 - Full command list in the README and in `Home.md` (adds `/ingest`, `write lessons`, `refresh banks`, `publish banks for practice`, `sync quiz`, `/update-second-brain`).
 - Update needs: replace the "Say to Claude" list in your `Home.md` with the one in `template/Home.md`.

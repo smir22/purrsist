@@ -1,8 +1,13 @@
-# Second Brain Kit
+# Purrsist
 
-A learning system that stops you forgetting what you learn. Claude keeps your notes in Obsidian, quizzes you on your phone on a spaced-repetition schedule, and puts reminders in your calendar.
+```
+ /\_____/\
+>•       •<   the cat that won't let you forget what you learn
+```
 
-Built on Karpathy's "LLM wiki" idea and the CoderCo *Learn it so it sticks* method: recall first, explain it like you're teaching, review on days 1 · 3 · 7 · 14 · 31.
+**Purrsist** (the Second Brain Kit) is a learning system that stops you forgetting what you learn. Claude keeps your notes in Obsidian, quizzes you on your phone on a spaced-repetition schedule, and puts reminders in your calendar.
+
+Built on [Hussein Malki's obsidian-llm-brain](https://github.com/Husseinmalki/obsidian-llm-brain) (the vault, `CLAUDE.md` schema and index/log approach), Karpathy's "LLM wiki" idea and the CoderCo *Learn it so it sticks* method: recall first, explain it like you're teaching, review on days 1 · 3 · 7 · 14 · 31.
 
 > **Install:** open a Claude Cowork task linked to your computer and say *"Set up https://github.com/smir22/second-brain-kit for me"*. Already set up? Type **`/update-second-brain`**.
 >
@@ -13,6 +18,7 @@ Built on Karpathy's "LLM wiki" idea and the CoderCo *Learn it so it sticks* meth
 - **Learn:** your weak topics as step-by-step lessons (the problem, the idea, your own code line by line, your past mistakes), then 2 right in a row to clear.
 - **Practice:** endless questions from your whole bank, XP, combos and a timed hard mode.
 - **Progress:** streak, levels, a GitHub-style heatmap and mastery across the ladder.
+- **The cat:** sits under the title showing your status and reacts to every answer (WOW! / oops / x3 combo! / LVL UP!).
 - **Settings:** 12 themes and your own icon.
 - **On your Mac:** `/ingest` after you learn something, `import` for older material, a nightly sync that moves topics up the ladder, calendar reminders, and `/update-second-brain` for new versions.
 

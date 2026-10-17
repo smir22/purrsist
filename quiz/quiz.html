@@ -1,4 +1,4 @@
-<title>Second Brain Quiz</title>
+<title>Purrsist</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
@@ -73,6 +73,24 @@ h1{font:700 1.6rem/1.1 var(--display);margin:0;text-wrap:balance;letter-spacing:
 .flag[disabled]{opacity:1;color:var(--good);border-color:var(--good)}
 .flagmenu{display:flex;flex-wrap:wrap;gap:6px}.flagmenu button{min-height:34px;padding:6px 10px;font-size:.8rem;text-align:center}
 .pending{color:var(--warn);font-size:.82rem;margin:0}
+/* ---- the cat: monospace text art so it always lines up ---- */
+.tcat{display:flex;align-items:flex-end;gap:12px;margin:2px 0 0;min-height:2.6em}
+.tcat .art{margin:0;font:600 16px/1.15 ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--ink);white-space:pre;flex:none}
+.tcat .say{margin:0;font-size:.9rem;line-height:1.3;padding-bottom:1px;min-width:0;color:var(--muted)}
+.tcat .say .sub{display:inline}
+.tcat .react{display:none;font-weight:700}
+.tcat.reacting .sub{display:none}.tcat.reacting .react{display:inline}
+.c-good{color:var(--good)}.c-bad{color:var(--bad)}.c-combo{color:var(--pink)}.c-level{color:var(--warn)}.c-meh{color:var(--warn)}
+.tcat.idle .art{animation:catbob 2.6s steps(2) infinite}@keyframes catbob{50%{transform:translateY(-1px)}}
+.tcat.hop .art{animation:cathop .45s steps(3) 2}@keyframes cathop{50%{transform:translateY(-6px)}}
+.tcat.shake .art{animation:catshake .4s steps(4) 2}@keyframes catshake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.tcat.wiggle .art{animation:catwig .35s steps(2) 4}@keyframes catwig{0%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
+.catpop{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;z-index:50}
+.catpop div{background:var(--surface);border:2px solid var(--warn);border-radius:16px;padding:18px 26px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.35);animation:catpop 1.8s steps(8) forwards}
+.catpop pre{margin:0;font:700 26px/1.15 ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--ink)}
+.catpop b{display:block;margin-top:8px;font:800 1.3rem/1 ui-monospace,Menlo,monospace;color:var(--warn);letter-spacing:.06em}
+@keyframes catpop{0%{opacity:0;transform:scale(.7)}15%{opacity:1;transform:scale(1.08)}25%,80%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.95)}}
+@media (prefers-reduced-motion: reduce){.tcat .art,.catpop div{animation:none!important}}
 .chip{font:500 .72rem/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:6px 8px;border-radius:6px;background:var(--accent-soft);color:var(--pink)}
 .chip.plain{background:transparent;color:var(--muted);padding-inline:0}
 .topic{font:600 1.05rem/1.3 var(--display);margin:0}
@@ -193,8 +211,8 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
 
 <div class="wrap">
   <header>
-    <h1>Second Brain Quiz</h1>
-    <p class="sub" id="sub">Loading your questions…</p>
+    <h1>Purrsist</h1>
+    <div class="tcat idle" id="tcat"><pre class="art" id="catart" aria-hidden="true"></pre><p class="say"><span class="sub" id="sub">Loading your questions…</span><span class="react" id="catsay" aria-live="polite"></span></p></div>
     <p class="pending" id="pending" hidden></p>
     <div class="bar" aria-hidden="true"><i id="prog"></i></div>
     <div class="mode tabs" id="tabs" role="tablist" aria-label="View">
@@ -283,6 +301,7 @@ function render() {
   const answered = Q.length - pending.length;
   const topics = [...new Set(Q.map(q => q.topic))];
   document.getElementById("prog").style.width = Q.length ? (answered / Q.length * 100) + "%" : "0";
+  catMood(Q.length && !pending.length ? "sleepy" : "idle");
   document.getElementById("sub").textContent = Q.length
     ? `${answered} of ${Q.length} answered · ${topics.length} topic${topics.length === 1 ? "" : "s"}`
     : "Nothing loaded yet";
@@ -514,9 +533,35 @@ function flagBtn(q, card) {
   return b;
 }
 
+// ---------- The cat: reacts to answers, then goes back to showing your status ----------
+const CAT_EYES = { idle:"•  •", sleepy:"-  -", right:"^  ^", almost:"o  o", wrong:"T  T", combo:"*  *", timeout:"O  O", level:"★  ★", cleared:"^  ^" };
+const CAT_SAY = { right:["WOW!", "nice one", "big brain", "yes!!"], almost:["nearly!", "so close"], wrong:["oops", "nearly", "we go again"],
+  combo:["x3 combo!", "on fire", "unstoppable"], timeout:["too slow!"], level:["LVL UP!"], cleared:["cleared! ✓"] };
+const CAT_CLS = { right:"c-good", almost:"c-meh", wrong:"c-bad", combo:"c-combo", timeout:"c-bad", level:"c-level", cleared:"c-good" };
+const CAT_ANIM = { right:"hop", almost:"shake", wrong:"shake", combo:"wiggle", timeout:"shake", level:"hop", cleared:"hop" };
+const catArt = eyes => ` /\\_____/\\\n>${eyes.replace(/  /, "       ")}<`;
+let catBase = "idle", catTimer = null;
+function catDraw(mood) { const a = document.getElementById("catart"); if (a) a.textContent = catArt(CAT_EYES[mood] || CAT_EYES.idle); }
+function catMood(m) { catBase = m; if (!document.getElementById("tcat").classList.contains("reacting")) catDraw(m); }
+function catReact(mood) {
+  const box = document.getElementById("tcat"), say = document.getElementById("catsay");
+  clearTimeout(catTimer);
+  const pool = CAT_SAY[mood] || [""];
+  say.textContent = pool[Math.floor(Math.random() * pool.length)]; say.className = "react " + (CAT_CLS[mood] || "");
+  box.className = "tcat reacting " + (CAT_ANIM[mood] || "idle"); catDraw(mood);
+  if (mood === "level") catBig("LVL UP!");
+  catTimer = setTimeout(() => { box.className = "tcat idle"; catDraw(catBase); }, 1600);
+}
+function catBig(text) {                       // milestone pop-up in the middle of the screen
+  const w = el("div", "catpop"), d = el("div"), pre = el("pre"); pre.textContent = catArt(CAT_EYES.level);
+  d.append(pre, el("b", null, text)); w.append(d); document.body.append(w); setTimeout(() => w.remove(), 1900);
+}
+catDraw("idle");
+
 async function save(q, data) {
   shownId = q.id;
   A.set(q.id, data); lastKey = ""; render();              // show feedback straight away
+  catReact(data.verdict === "correct" ? "right" : data.verdict === "partial" ? "almost" : "wrong");
   try {
     await put("answers", q.id, { ...data, topic: q.topic, page: q.page || "", kind: q.kind, at: new Date().toISOString() });
     logDay(data.verdict, Number(q.stage) || 0);
@@ -541,8 +586,9 @@ const activeOn = d => { const x = dayOf(d); return !!x && (x.n > 0 || x.checked)
 function writeDay(patch) {
   const now = new Date(), mk = dkey(now).slice(0, 7), dd = pad(now.getDate());
   const cur = { n: 0, c: 0, p: 0, w: 0, xp: 0, ...(dayOf(now) || {}) };
-  const next = patch(cur);
+  const next = patch(cur), lvl0 = totals().level;
   ACT[mk] = { days: { ...(ACT[mk]?.days || {}), [dd]: next } };
+  if (totals().level > lvl0) setTimeout(() => catReact("level"), 900);
   if (tab === "progress") renderProgress();
   writeChain = writeChain.then(() => put("activity", mk, { days: { [dd]: next } }, "day").catch(() => {}));
 }
@@ -684,8 +730,8 @@ tabBtns.forEach(b => b.onclick = () => showTab(b.dataset.t));
 showTab("quiz");
 
 // ---------- Practice: one question at a time, swap animation, hard mode, icon ----------
-const VERSION = "1.15.1";
-document.getElementById("version").textContent = `Second Brain Kit v${VERSION}`;
+const VERSION = "1.17.0";
+document.getElementById("version").textContent = `Purrsist v${VERSION} · Second Brain Kit`;
 const ICONS = ["🧠", "🦉", "🐉", "🚀", "⚡", "🔥", "🐺", "🦊", "🐙", "🤖", "🛰️", "🗝️"];
 let POOL = [], bag = [], pfilter = "all", combo = 0, practiceStarted = false, current = null, hard = false;
 try { hard = localStorage.getItem("hard") === "1"; } catch (e) {}
@@ -776,6 +822,7 @@ function answer(q, i, c, b, opts, stage) {
   if (b && !ok) b.classList.add("wrong");
   combo = ok ? combo + 1 : 0;
   markMissed(q.key, !ok);
+  catReact(ok ? (combo >= 3 ? "combo" : "right") : (i === -1 ? "timeout" : "wrong"));
   const delta = practiceXP(ok, stage);
   writeDay(d => ({ ...d, n: d.n + 1, [verdict[0]]: (d[verdict[0]] || 0) + 1, xp: d.xp + delta }));
   c.classList.add(ok ? "good" : "bad");
@@ -938,6 +985,7 @@ function check(L) {
       opts.querySelectorAll("button").forEach(x => { x.disabled = true; if (Number(x.dataset.i) === Number(q.correct)) x.classList.add("right"); });
       if (!ok) b.classList.add("wrong");
       lstreak = ok ? lstreak + 1 : 0; markMissed(q.key, !ok); dd.replaceWith(dots());
+      catReact(ok ? (lstreak >= NEED ? "cleared" : "right") : "wrong");
       const delta = practiceXP(ok, stage) + (ok && lstreak >= NEED ? 10 : 0);
       writeDay(d => ({ ...d, n: d.n + 1, [verdict[0]]: (d[verdict[0]] || 0) + 1, xp: d.xp + delta }));
       put("answers", `l-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
