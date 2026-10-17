@@ -112,4 +112,12 @@ with tempfile.TemporaryDirectory() as d:
     run(v, {**queued, "answers": [lr]}, dt.datetime(2026, 10, 12, 12, 20))
     assert "(learn) learned gap" in page.read_text() and re.search(r"^stage: (\d+)", page.read_text(), re.M).group(1) == before_stage
 
+    # Flags: logged under "## Flagged questions" above My notes, page goes to refresh_bank, the flag doc is deleted
+    fl = {"id": "f-1", "version": 1, "data": {"mode": "flag", "reason": "Needs code", "page": "wiki/tech/Topic A.md", "prompt": "What does X do?"}}
+    out7 = run(v, {**queued, "answers": [fl, {**fl, "id": "f-2"}]}, dt.datetime(2026, 10, 12, 12, 30))
+    t7 = page.read_text()
+    assert t7.count("Needs code: What does X do?") == 1 and t7.index("## Flagged questions") < t7.index("## My notes"), t7
+    assert "wiki/tech/Topic A.md" in out7["refresh_bank"] and any("Flagged questions: 2" in s for s in out7["summary"])
+    assert sum(w["op"] == "delete" and w["collection"] == "answers" for b in out7["batches"] for w in b) == 2
+
 print("ok")

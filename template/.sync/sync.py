@@ -58,16 +58,19 @@ def set_fm(text, **kv):
     return "---\n" + "\n".join(body) + "\n---\n" + text[m.end():]
 
 
-def add_weak(text, items, day):
+def add_weak(text, items, day, heading="Weak spots"):
     if not items:
         return text
-    items = [i for i in items if f": {i}\n" not in text]       # don't repeat a weak spot already listed
+    items = [i for i in items if f": {i}\n" not in text]       # don't repeat a line already listed
     if not items:
         return text
     lines = "".join(f"- {day}: {i}\n" for i in items)
-    m = re.search(r"^## Weak spots\n", text, re.M)
+    m = re.search(rf"^## {heading}\n", text, re.M)
     if not m:
-        return text.rstrip("\n") + f"\n\n## Weak spots\n{lines}"
+        notes = re.search(r"^## My notes\n", text, re.M)       # new section goes above My notes
+        if notes and heading != "Weak spots":
+            return text[:notes.start()] + f"## {heading}\n{lines}\n" + text[notes.start():]
+        return text.rstrip("\n") + f"\n\n## {heading}\n{lines}"
     nxt = re.search(r"^## ", text[m.end():], re.M)
     pos = m.end() + nxt.start() if nxt else len(text)
     return text[:pos].rstrip("\n") + "\n" + lines + "\n" + text[pos:]
@@ -153,7 +156,7 @@ def run(vault, inbox, now, force_bank=False):
         for i in ids:
             writes.append({"op": "delete", "collection": "questions", "doc_id": i, "if_version": qs[i]["version"]})
             writes.append({"op": "delete", "collection": "answers", "doc_id": i, "if_version": ans[i]["version"]})
-    practiced = 0
+    practiced, flagged = 0, []
     for i, a in ans.items():                 # practice answers, and answers whose question is already gone
         if i in qs:
             continue
@@ -164,6 +167,13 @@ def run(vault, inbox, now, force_bank=False):
             if d.get("page") and p.exists() and d.get("verdict") != "correct":   # practice never moves the ladder,
                 text, _ = read_page(p)                                            # but misses become weak spots
                 p.write_text(add_weak(text, [f"({d['mode']}) {m}" for m in (d.get("missing") or [])[:2]], day))
+            done.add(i)
+        elif d.get("mode") == "flag" and i not in done:          # a bad question flagged on the phone
+            p = vault / d.get("page", "")
+            if d.get("page") and p.exists():
+                text, _ = read_page(p)
+                p.write_text(add_weak(text, [f"{d.get('reason', 'Flagged')}: {d.get('prompt', '')}"], day, "Flagged questions"))
+                flagged.append(d["page"])
             done.add(i)
         writes.append({"op": "delete", "collection": "answers", "doc_id": i, "if_version": a["version"]})
     done_f.write_text("\n".join(sorted(done)) + "\n")
@@ -212,6 +222,8 @@ def run(vault, inbox, now, force_bank=False):
         p.write_text(set_fm(text, bank_set=n + 1))
         loaded.append(topic)
 
+    refresh += [p for p in dict.fromkeys(flagged) if p not in refresh]   # flagged questions get fixed at "refresh banks"
+
     # Mastery snapshot for the quiz page's Progress tab (stage counts after this run's updates).
     st = {r["id"]: r for r in inbox.get("stats", [])}
     w = {"op": "set", "collection": "stats", "doc_id": "mastery",
@@ -243,6 +255,8 @@ def run(vault, inbox, now, force_bank=False):
         summary.append("Loaded: " + ", ".join(loaded))
     if practiced:
         summary.append(f"Practice answers saved: {practiced}")
+    if flagged:
+        summary.append(f"Flagged questions: {len(flagged)} (say \"refresh banks\" to fix them)")
     if log or loaded:
         with open(vault / "log.md", "a") as f:
             f.write(f"\n## [{day}] quiz | sync {now:%H:%M}\n"

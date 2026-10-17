@@ -2,6 +2,12 @@
 
 The quiz page shows its version under **Settings → About**. To update an existing setup, type `/update-second-brain` in Cowork (or paste [`UPDATE_PROMPT.md`](UPDATE_PROMPT.md) if you set up before v1.14).
 
+## 1.15.0
+- **Flag a question:** a small ⚑ Flag on every question (Quiz, Practice, Learn): wrong answer / unclear / needs code / too easy. The sync logs it on the topic's page under `## Flagged questions`, and **refresh banks** fixes flagged questions first.
+- **Works with bad signal:** answers, XP and flags are saved on your phone when there's no signal and sent automatically when it's back ("N answers saved on this phone" shows meanwhile). Open the quiz once before you lose signal.
+- Inline `code` in questions and options now renders as code.
+- Update needs: nothing extra (the update copies the new sync script and merges the refresh banks rule).
+
 ## 1.14.0
 - **`/update-second-brain` skill:** updating is one command. It reads your installed version (`.sync/kit_version`), shows what's new, and runs only the one-time steps you missed.
 - Each version below lists its **Update needs:** (one-time steps the update runs for you).

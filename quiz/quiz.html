@@ -69,6 +69,10 @@ h1{font:700 1.6rem/1.1 var(--display);margin:0;text-wrap:balance;letter-spacing:
 .bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
 .meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.flag{margin-left:auto;min-height:30px;padding:4px 10px;font:500 .72rem/1 var(--mono);letter-spacing:.04em;color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:6px;text-align:center}
+.flag[disabled]{opacity:1;color:var(--good);border-color:var(--good)}
+.flagmenu{display:flex;flex-wrap:wrap;gap:6px}.flagmenu button{min-height:34px;padding:6px 10px;font-size:.8rem;text-align:center}
+.pending{color:var(--warn);font-size:.82rem;margin:0}
 .chip{font:500 .72rem/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:6px 8px;border-radius:6px;background:var(--accent-soft);color:var(--pink)}
 .chip.plain{background:transparent;color:var(--muted);padding-inline:0}
 .topic{font:600 1.05rem/1.3 var(--display);margin:0}
@@ -191,6 +195,7 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
   <header>
     <h1>Second Brain Quiz</h1>
     <p class="sub" id="sub">Loading your questions…</p>
+    <p class="pending" id="pending" hidden></p>
     <div class="bar" aria-hidden="true"><i id="prog"></i></div>
     <div class="mode tabs" id="tabs" role="tablist" aria-label="View">
       <button type="button" data-t="quiz">Quiz</button>
@@ -306,8 +311,8 @@ function questionCard(q) {
   const c = el("section", "card");
   const stage = Number(q.stage) || 0;
   const meta = el("div", "meta");
-  meta.append(el("span", "chip", KIND[q.kind] || q.kind), el("span", "chip plain", `Stage ${stage} · ${WAIT[stage]}d gap`));
-  c.append(meta, el("h2", "topic", q.topic), ladder(stage), el("p", "prompt", q.prompt));
+  meta.append(el("span", "chip", KIND[q.kind] || q.kind), el("span", "chip plain", `Stage ${stage} · ${WAIT[stage]}d gap`), flagBtn(q, c));
+  c.append(meta, el("h2", "topic", q.topic), ladder(stage), promptEl(q));
   if (q.code) c.append(el("pre", "code", q.code));
 
   const a = A.get(q.id);
@@ -317,7 +322,7 @@ function questionCard(q) {
   if (hasOpts && (style === "tap" || q.kind === "recall")) {   // written mode: why/apply/teach get a text box
     const opts = el("div", "opts");
     shuffled(q.options.length).forEach(i => {            // new order every time, so position can't be memorised
-      const o = q.options[i], b = el("button", null, o); b.dataset.i = i;
+      const o = q.options[i], b = el("button"); b.append(inline(o)); b.dataset.i = i;
       b.onclick = () => {
         const ok = i === Number(q.correct);
         opts.querySelectorAll("button").forEach(x => { x.disabled = true; if (Number(x.dataset.i) === Number(q.correct)) x.classList.add("right"); });
@@ -444,11 +449,76 @@ function doneCard(topics) {
   c.append(rows, row); return c;
 }
 
+// ---------- Offline outbox: writes that fail (no signal) wait on the phone and send when signal is back ----------
+const loadBox = () => { try { return JSON.parse(localStorage.getItem("outbox") || "[]"); } catch (e) { return []; } };
+let outbox = loadBox(), flushing = false;
+const saveBox = () => { try { localStorage.setItem("outbox", JSON.stringify(outbox.slice(-500))); } catch (e) {} };
+const timed = (p, ms = 8000) => Promise.race([p, new Promise((_, r) => setTimeout(() => r({ code: "timeout" }), ms))]);
+async function rawWrite(w) {
+  const ref = db.collection(w.c).doc(w.id);
+  if (w.op !== "day") return timed(ref.set(w.data));
+  try { await timed(ref.update(w.data)); }                    // activity month doc: update, or create it
+  catch (e) { if (e?.code === "invalid_argument") await timed(ref.set(w.data)); else throw e; }
+}
+function enqueue(w) {
+  const same = outbox.findIndex(x => x.c === w.c && x.id === w.id && x.op === w.op);
+  if (same >= 0 && w.op === "day") outbox[same].data = { days: { ...outbox[same].data.days, ...w.data.days } };
+  else if (same >= 0) outbox[same] = w; else outbox.push(w);
+  saveBox(); showPending();
+}
+const HARD = ["quota_exceeded", "permission_denied", "not_found"];   // real errors, not missing signal
+async function put(c, id, data, op = "set") {           // true = saved now, false = queued until signal returns
+  const w = { c, id, data, op };
+  if (!db || outbox.length || navigator.onLine === false) { enqueue(w); flush(); return false; }
+  try { await rawWrite(w); return true; }
+  catch (e) { if (HARD.includes(e?.code)) throw e; enqueue(w); return false; }
+}
+async function flush() {
+  if (flushing || !outbox.length || !db || navigator.onLine === false) return;
+  flushing = true;
+  try {
+    while (outbox.length) {
+      try { await rawWrite(outbox[0]); }
+      catch (e) { if (!HARD.includes(e?.code) && (outbox[0].tries = (outbox[0].tries || 0) + 1) < 5) break; }   // retry later; give up on a write after 5 tries
+      outbox.shift(); saveBox();
+    }
+  } finally { flushing = false; showPending(); }
+}
+function showPending() {
+  const n = outbox.filter(w => w.c === "answers").length, p = document.getElementById("pending");
+  p.hidden = !n; p.textContent = `${n} answer${n === 1 ? "" : "s"} saved on this phone, sending when you have signal`;
+}
+addEventListener("online", flush);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) flush(); });
+setInterval(flush, 30000);
+
+// ---------- Flag a bad question: logged on its vault page; "refresh banks" fixes flagged questions first ----------
+const FLAG_REASONS = ["Wrong answer", "Unclear", "Needs code", "Too easy"];
+function flagBtn(q, card) {
+  const b = el("button", "flag", "⚑ Flag"); b.type = "button"; b.setAttribute("aria-label", "Flag this question");
+  b.onclick = e => {
+    e.stopPropagation();
+    if (card.querySelector(".flagmenu")) return card.querySelector(".flagmenu").remove();
+    const m = el("div", "flagmenu");
+    FLAG_REASONS.forEach(r => {
+      const o = el("button", null, r); o.type = "button";
+      o.onclick = () => {
+        m.remove(); b.disabled = true; b.textContent = "Flagged ✓";
+        put("answers", `f-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          { mode: "flag", reason: r, page: q.page || "", topic: q.topic, prompt: q.prompt, at: new Date().toISOString() }).catch(() => {});
+      };
+      m.append(o);
+    });
+    b.closest(".meta").after(m);
+  };
+  return b;
+}
+
 async function save(q, data) {
   shownId = q.id;
   A.set(q.id, data); lastKey = ""; render();              // show feedback straight away
   try {
-    await db.collection("answers").doc(q.id).set({ ...data, topic: q.topic, page: q.page || "", kind: q.kind, at: new Date().toISOString() });
+    await put("answers", q.id, { ...data, topic: q.topic, page: q.page || "", kind: q.kind, at: new Date().toISOString() });
     logDay(data.verdict, Number(q.stage) || 0);
   } catch (e) {
     A.delete(q.id); shownId = null; lastKey = ""; render();
@@ -474,11 +544,7 @@ function writeDay(patch) {
   const next = patch(cur);
   ACT[mk] = { days: { ...(ACT[mk]?.days || {}), [dd]: next } };
   if (tab === "progress") renderProgress();
-  writeChain = writeChain.then(async () => {
-    const ref = db.collection("activity").doc(mk);
-    try { await ref.update({ days: { [dd]: next } }); }
-    catch (e) { if (e?.code === "invalid_argument") { try { await ref.set({ days: { [dd]: next } }); } catch (_) {} } }
-  });
+  writeChain = writeChain.then(() => put("activity", mk, { days: { [dd]: next } }, "day").catch(() => {}));
 }
 const xpFor = (verdict, stage, factor = 1) => Math.max(1, Math.round((XP[verdict] || 0) * (1 + 0.5 * stage) * factor));
 function logDay(verdict, stage, factor = 1) {
@@ -618,7 +684,7 @@ tabBtns.forEach(b => b.onclick = () => showTab(b.dataset.t));
 showTab("quiz");
 
 // ---------- Practice: one question at a time, swap animation, hard mode, icon ----------
-const VERSION = "1.14.0";
+const VERSION = "1.15.0";
 document.getElementById("version").textContent = `Second Brain Kit v${VERSION}`;
 const ICONS = ["🧠", "🦉", "🐉", "🚀", "⚡", "🔥", "🐺", "🦊", "🐙", "🤖", "🛰️", "🗝️"];
 let POOL = [], bag = [], pfilter = "all", combo = 0, practiceStarted = false, current = null, hard = false;
@@ -676,12 +742,12 @@ let timer = null;
 const hardSeconds = () => combo >= 5 ? 10 : 15;   // 15 s to answer; after 5 right in a row it tightens to 10 s
 function cardFor(q) {
   const c = el("section", "card pcard enter"), stage = stageOf(q.page);
-  const meta = el("div", "meta"); meta.append(el("span", "chip", KIND[q.kind] || q.kind), el("span", "chip plain", `${q.topic} · ${WAIT[stage]}d`));
+  const meta = el("div", "meta"); meta.append(el("span", "chip", KIND[q.kind] || q.kind), el("span", "chip plain", `${q.topic} · ${WAIT[stage]}d`), flagBtn(q, c));
   const opts = el("div", "opts");
-  c.append(meta, el("p", "prompt", q.prompt));
+  c.append(meta, promptEl(q));
   if (q.code) c.append(el("pre", "code", q.code));
   shuffled(q.options.length).forEach(i => {
-    const b = el("button", null, q.options[i]); b.dataset.i = i;
+    const b = el("button"); b.append(inline(q.options[i])); b.dataset.i = i;
     b.onclick = () => answer(q, i, c, b, opts, stage);
     opts.append(b);
   });
@@ -721,8 +787,8 @@ function answer(q, i, c, b, opts, stage) {
   c.append(el("p", "hint", q.answer || q.options[q.correct]));
   const nx = el("button", "primary", "Next"); nx.onclick = nextCard;
   const row = el("div", "actions"); row.append(nx); learnBtn(q, row); c.append(row);
-  db.collection("answers").doc(`p-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`)
-    .set({ mode: "practice", page: q.page, topic: q.topic, kind: q.kind, verdict, missing: [q.options[q.correct]], at: new Date().toISOString() }).catch(() => {});
+  put("answers", `p-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    { mode: "practice", page: q.page, topic: q.topic, kind: q.kind, verdict, missing: [q.options[q.correct]], at: new Date().toISOString() }).catch(() => {});
 }
 function nextCard() {
   if (timer) cancelAnimationFrame(timer); timer = null;
@@ -790,6 +856,7 @@ function openLesson(page) {
   showLesson(L);
 }
 // Tiny markdown → DOM (no innerHTML): paragraphs, - and 1. lists, ``` code, **bold**, `code`
+const promptEl = q => { const p = el("p", "prompt"); p.append(inline(q.prompt || "")); return p; };
 function inline(s) {
   const f = document.createDocumentFragment();
   s.split(/(\*\*[^*]+\*\*|`[^`]+`)/).forEach(p => {
@@ -858,13 +925,13 @@ function check(L) {
   left.sort((a, b) => missed.has(b.key) - missed.has(a.key) || Math.random() - .5);   // the questions you missed come first
   const q = left[0]; lused.add(q.key);
   const c = el("section", "card"), stage = stageOf(L.p);
-  const meta = el("div", "meta"); meta.append(el("span", "chip", KIND[q.kind] || q.kind), el("span", "chip plain", L.t));
+  const meta = el("div", "meta"); meta.append(el("span", "chip", KIND[q.kind] || q.kind), el("span", "chip plain", L.t), flagBtn(q, c));
   const opts = el("div", "opts");
   const dd = dots(); c.style.position = "relative";
-  c.append(meta, dd, el("p", "prompt", q.prompt));
+  c.append(meta, dd, promptEl(q));
   if (q.code) c.append(el("pre", "code", q.code));
   shuffled(q.options.length).forEach(i => {
-    const b = el("button", null, q.options[i]); b.dataset.i = i;
+    const b = el("button"); b.append(inline(q.options[i])); b.dataset.i = i;
     b.onclick = () => {
       if (c.dataset.done) return; c.dataset.done = "1";
       const ok = i === Number(q.correct), verdict = ok ? "correct" : "wrong";
@@ -873,8 +940,8 @@ function check(L) {
       lstreak = ok ? lstreak + 1 : 0; markMissed(q.key, !ok); dd.replaceWith(dots());
       const delta = practiceXP(ok, stage) + (ok && lstreak >= NEED ? 10 : 0);
       writeDay(d => ({ ...d, n: d.n + 1, [verdict[0]]: (d[verdict[0]] || 0) + 1, xp: d.xp + delta }));
-      db.collection("answers").doc(`l-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`)
-        .set({ mode: "learn", page: q.page, topic: q.topic, kind: q.kind, verdict, missing: [q.options[q.correct]], at: new Date().toISOString() }).catch(() => {});
+      put("answers", `l-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        { mode: "learn", page: q.page, topic: q.topic, kind: q.kind, verdict, missing: [q.options[q.correct]], at: new Date().toISOString() }).catch(() => {});
       c.classList.add(ok ? "good" : "bad");
       c.append(el("span", "float " + (delta >= 0 ? "up" : "down"), `+${delta} XP`));
       const row = el("div", "actions");
@@ -904,7 +971,7 @@ for (const ic of ICONS) {
   const b = el("button", null, ic); b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-label", "Icon " + ic);
   b.onclick = async () => {
     STATS = { ...STATS, profile: { icon: ic } }; showIcons(); hud(); if (tab === "progress") renderProgress();
-    try { await db.collection("stats").doc("profile").set({ icon: ic }); } catch (e) {}
+    put("stats", "profile", { icon: ic }).catch(() => {});
   };
   iconBox.append(b);
 }
@@ -924,6 +991,7 @@ async function boot() {
     if (tab === "progress") renderProgress();
   }, () => {});
   db.collection("stats").onSnapshot(s => { STATS = Object.fromEntries(s.docs.map(d => [d.id, d.data()])); showIcons(); if (tab === "progress") renderProgress(); if (tab === "practice") hud(); }, () => {});
+  showPending(); flush();
   db.collection("bank").onSnapshot(s => { buildPool(s.docs.map(d => d.data())); }, () => {});
   db.collection("questions").orderBy("order").onSnapshot(s => {
     Q = s.docs.map(d => ({ id: d.id, ...d.data() })); render();
@@ -932,6 +1000,7 @@ async function boot() {
   db.collection("answers").onSnapshot(s => {
     const m = new Map(s.docs.map(d => [d.id, d.data()]));
     for (const [k, v] of A) if (!m.has(k) && k === shownId) m.set(k, v);   // keep local feedback until the write lands
+    for (const w of outbox) if (w.c === "answers" && !w.data.mode && !m.has(w.id)) m.set(w.id, w.data);   // answered offline, not sent yet
     A = m; render();
   }, fail);
 }

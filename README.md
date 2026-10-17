@@ -9,7 +9,7 @@ Built on Karpathy's "LLM wiki" idea and the CoderCo *Learn it so it sticks* meth
 > **Claude, reading this for a user:** to install, follow [`SETUP_PROMPT.md`](SETUP_PROMPT.md) step by step. If they already have a Second Brain vault (a `CLAUDE.md` with this schema or a `.sync/kit_version`), follow [`skills/update-second-brain/SKILL.md`](skills/update-second-brain/SKILL.md) instead.
 
 **What you get**
-- **Quiz:** tomorrow's due topics on your phone, multiple choice (or written answers marked by Claude), with code snippets where a question needs them.
+- **Quiz:** tomorrow's due topics on your phone, multiple choice (or written answers marked by Claude), with code snippets where a question needs them. Works offline and lets you flag bad questions.
 - **Learn:** your weak topics as step-by-step lessons (the problem, the idea, your own code line by line, your past mistakes), then 2 right in a row to clear.
 - **Practice:** endless questions from your whole bank, XP, combos and a timed hard mode.
 - **Progress:** streak, levels, a GitHub-style heatmap and mastery across the ladder.
@@ -89,6 +89,8 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 - **Strictness:** Lenient / Balanced / Strict (shows in Write mode).
 - **Done screen:** shows where each topic moves on the ladder.
 - Nothing to do? It says so. New questions load at the next sync.
+- **⚑ Flag** any bad question (wrong answer, unclear, needs code, too easy). It's logged on the topic's page and fixed next time you say `refresh banks`.
+- **No signal?** Keep going. Answers are saved on your phone and sent when signal returns. Open the quiz once before you go underground.
 
 ### Learn tab (phone)
 - Lists your weak topics (stage 0–1, missed questions, logged weak spots), most urgent first.

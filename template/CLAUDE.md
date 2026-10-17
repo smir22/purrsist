@@ -158,7 +158,7 @@ The Learn tab teaches weak topics from the page's `## Lesson` (placed after the 
 - After writing or changing lessons, publish banks for Practice (lessons travel with the bank; reading them costs no tokens).
 
 ### refresh banks  ("refresh banks", or when a sync reports refresh_bank / needs_bank)
-For each flagged page: write 1–2 new question sets (same format, all with options), targeting `## Weak spots` first, and append them to the page's question bank. Never edit sets already used.
+For each flagged page: **first fix every question listed under `## Flagged questions`** (flagged on the phone: wrong answer / unclear / needs code / too easy). Rewrite that question in place, even in a used set: correct it, clarify it, add a `code` snippet, or make it harder. Then delete those lines (and the heading if empty). Then write 1–2 new question sets (same format, all with options), targeting `## Weak spots` first, and append them to the page's question bank. Never edit used sets except to fix a flagged question. Publish banks after.
 
 ### capture  (always on)
 In any session in this vault: when a concept comes up that has no page in the folder `_index.md` (the user learns it, asks about it, or uses it in a build), offer in one line: "Add <concept> to your quiz?" Yes → write the page + bank, `stage: 0`, due tomorrow. Never add without a yes.
