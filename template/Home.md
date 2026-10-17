@@ -11,9 +11,15 @@ updated: YYYY-MM-DD
 **Nav:** [[index]] · [[log]] · [[CLAUDE|Schema]] · [[Week]] · [[Goals]]
 
 ## Say to Claude
-- `ingest raw/<file>` / "I learned X" → blank-page dump, notes, question bank, teach-back check
-- `quiz me` → due reviews
+- `/ingest` (or "I learned X", `ingest raw/<file>`) → brain-dump, drill your gaps, then notes + lesson + questions
+- `import <folder or project>` / `process inbox` → turn older material into topics (3 new a day)
+- `write lessons` → step-by-step lessons for pages that don't have one
+- `refresh banks` → fix flagged questions, fresh questions where a bank is used up
+- `publish banks for practice` → send lessons + questions to the phone now
+- `sync quiz` → run the sync now (or **Sync now** on the phone)
+- `quiz me` → quiz in chat instead of the phone
 - `plan a build for X` / `build done`
 - `plan week`
 - `anki export` → import `anki/new-cards.txt` into Anki
 - `lint the wiki` (monthly)
+- `/update-second-brain` → get the latest kit version

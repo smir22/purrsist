@@ -2,6 +2,10 @@
 
 The quiz page shows its version under **Settings → About**. To update an existing setup, type `/update-second-brain` in Cowork (or paste [`UPDATE_PROMPT.md`](UPDATE_PROMPT.md) if you set up before v1.14).
 
+## 1.15.1
+- Full command list in the README and in `Home.md` (adds `/ingest`, `write lessons`, `refresh banks`, `publish banks for practice`, `sync quiz`, `/update-second-brain`).
+- Update needs: replace the "Say to Claude" list in your `Home.md` with the one in `template/Home.md`.
+
 ## 1.15.0
 - **Flag a question:** a small ⚑ Flag on every question (Quiz, Practice, Learn): wrong answer / unclear / needs code / too easy. The sync logs it on the topic's page under `## Flagged questions`, and **refresh banks** fixes flagged questions first.
 - **Works with bad signal:** answers, XP and flags are saved on your phone when there's no signal and sent automatically when it's back ("N answers saved on this phone" shows meanwhile). Open the quiz once before you lose signal.

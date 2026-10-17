@@ -124,17 +124,24 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 - Write your own thoughts under **My notes**. Claude never edits that section.
 - `log.md` = history of everything that happened.
 
-### Other things to say in Cowork
+### All commands (say these in a Cowork vault session)
 | Say | What happens |
 |---|---|
+| `/ingest` (or "I just learned X") | Brain-dump, Claude drills your gaps, then writes notes, a step-by-step lesson and quiz questions |
 | `import <folder or project>` | Bulk-add things you already learned (course repo, notes). Claude proposes topics, you rate them know / shaky / skip, new ones roll in 3 a day |
 | `process inbox` | Same, for files you dropped into `raw/inbox/` |
-| `refresh banks` | Writes fresh questions for topics whose question bank is used up |
+| `write lessons` | Writes step-by-step Learn lessons for any topic that doesn't have one |
+| `refresh banks` | Fixes questions you flagged on the phone, and writes fresh questions for topics whose bank is used up |
+| `publish banks for practice` | Sends your lessons and questions to the phone straight away (otherwise the nightly sync does it) |
+| `sync quiz` | Runs the sync now from chat (same as **Sync now** on the phone) |
 | `quiz me` | Quiz in chat instead of the phone |
 | `plan a build for X` / `build done` | Hands-on lab; at the end you explain your code line by line |
 | `plan week` | Fits reviews and builds around your schedule |
 | `anki export` | Facts (ports, flags, vocab) → file you import into Anki |
 | `lint the wiki` | Monthly tidy: broken links, gaps, contradictions |
+| `/update-second-brain` | Updates to the latest version of this kit, keeping your notes and history |
+
+On the phone: **Quiz · Learn · Practice · Progress** (with **Sync now**) **· Settings**, and **⚑ Flag** on any question.
 
 ### Sync
 - Runs once a night by itself (default 20:52): saves your quiz results into the vault, loads tomorrow's questions, and adds a calendar reminder naming tomorrow's topics.
