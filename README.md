@@ -2,10 +2,10 @@
 
 ```
  /\_____/\
->•       •<   the cat that won't let you forget what you learn
+>•       •<   your purr-sonal learning companion
 ```
 
-<p align="center"><img src="docs/demo.gif" width="460" alt="Purrsist in use: /ingest, a quiz with the cat reacting, a lesson, hard-mode practice and progress"></p>
+<p align="center"><img src="docs/demo.gif" width="460" alt="Purrsist in use: /ingest, a quiz with the cat reacting, a lesson, hard-mode practice, progress and why the review gaps grow"></p>
 
 **Purrsist** (the Second Brain Kit) is a learning system that stops you forgetting what you learn. Claude keeps your notes in Obsidian, quizzes you on your phone on a spaced-repetition schedule, and puts reminders in your calendar.
 
@@ -63,6 +63,13 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 | Step | 0 | 1 | 2 | 3 | 4 | 5 | 6 |
 |---|---|---|---|---|---|---|---|
 | Next review in | 1d | 3d | 7d | 14d | 31d | 60d | 120d |
+
+**Why these gaps?**
+- You forget most new things within a day unless you recall them, so the first review is tomorrow.
+- Recalling something just as it starts to fade makes it last longer, so each gap can roughly double: 1 → 3 → 7 → 14 → 31 days.
+- Answering a question beats re-reading, so every review is a quiz.
+- 60 and 120 days keep mastered topics fresh. Fail one and it restarts at day 1, because it hadn't really stuck.
+- Practice and Learn never move the ladder: reviewing before you start to forget does less, and it would make your schedule look better than your memory is.
 
 ---
 
