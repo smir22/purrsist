@@ -5,6 +5,8 @@
 >•       •<   the cat that won't let you forget what you learn
 ```
 
+<p align="center"><img src="docs/demo.gif" width="460" alt="Purrsist in use: /ingest, a quiz with the cat reacting, a lesson, hard-mode practice and progress"></p>
+
 **Purrsist** (the Second Brain Kit) is a learning system that stops you forgetting what you learn. Claude keeps your notes in Obsidian, quizzes you on your phone on a spaced-repetition schedule, and puts reminders in your calendar.
 
 Built on [Hussein Malki's obsidian-llm-brain](https://github.com/Husseinmalki/obsidian-llm-brain) (the vault, `CLAUDE.md` schema and index/log approach), Karpathy's "LLM wiki" idea and the CoderCo *Learn it so it sticks* method: recall first, explain it like you're teaching, review on days 1 · 3 · 7 · 14 · 31.
