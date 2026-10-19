@@ -19,7 +19,7 @@ Built on [Hussein Malki's obsidian-llm-brain](https://github.com/Husseinmalki/ob
 - **Quiz:** tomorrow's due topics on your phone or Mac, multiple choice (or written answers marked by Claude), with code snippets where a question needs them. Skip, learn first or flag a question. **Never the same question twice:** each review asks a fresh rewrite. Works offline.
 - **Learn:** your weak topics as step-by-step lessons (the problem, the idea, your own code line by line, your past mistakes), then 2 right in a row to clear.
 - **Practice:** endless questions from your whole bank, XP, combos and a timed hard mode.
-- **Progress:** streak, levels, a GitHub-style heatmap and mastery across the ladder.
+- **Progress:** streak, levels, a GitHub-style heatmap, and every topic by ladder step (filter by 1d, 3d, 7d …).
 - **The cat:** sits under the title showing your status and reacts to every answer (WOW! / oops / x3 combo! / LVL UP!).
 - **Settings:** 12 themes (default: matches your phone's light or dark mode) and your own icon.
 - **On your Mac:** `/ingest` after you learn something, `import` for older material, a nightly sync that moves topics up the ladder, calendar reminders, and `/update-second-brain` for new versions.
@@ -32,7 +32,7 @@ Built on [Hussein Malki's obsidian-llm-brain](https://github.com/Husseinmalki/ob
 </p>
 <p align="center">
   <img src="docs/screenshots/8-learn.png" width="23%" alt="Learn tab: a step-by-step lesson with real code, 4 of 7">
-  <img src="docs/screenshots/5-progress.png" width="23%" alt="Progress tab: streak, level and XP, activity heatmap, mastery by ladder step, Sync now">
+  <img src="docs/screenshots/5-progress.png" width="23%" alt="Progress tab: streak, level and XP, activity heatmap, every topic by ladder step with a step filter">
   <img src="docs/screenshots/7-practice.png" width="23%" alt="Practice tab: one question at a time with level, XP, combo and hard mode">
   <img src="docs/screenshots/6-settings.png" width="23%" alt="Settings tab: theme picker with Match phone (default), Dracula, GitHub, Tokyo Night, Catppuccin, Nord and more">
 </p>
@@ -133,6 +133,7 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 - **Level & XP:** correct 10, partly 5, wrong 2 (for showing up), multiplied by the topic's ladder step, so remembering something after 31 days is worth more than after 1.
 - **Activity heatmap:** last 20 weeks, GitHub style.
 - **Mastery:** how many topics sit at each step of the ladder. "Mastered" = 31 days or more. This is the number that actually means you've learned it.
+- **Topics by step:** every topic with its current gap (1d, 3d, 7d …). Tap a step to filter, tap a topic to open its lesson.
 - **Sync now:** saves your answers into the vault straight away instead of waiting for the schedule (your Mac needs to be awake). The first tap asks permission to use the Claude Code Remote connector.
 
 ### Settings tab (phone)

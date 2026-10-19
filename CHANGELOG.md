@@ -2,6 +2,10 @@
 
 The quiz page shows its version under **Settings → About**. To update an existing setup, type `/update-second-brain` in Cowork (or paste [`UPDATE_PROMPT.md`](UPDATE_PROMPT.md) if you set up before v1.14).
 
+## 1.19.0
+- **Topics by step:** Progress → Mastery now lists every topic with its current gap (1d, 3d, 7d …). Tap a step to filter; tap a topic to open its lesson.
+- Update needs: nothing extra.
+
 ## 1.18.0
 - **Never the same question twice:** every question has 2 rewrites (same idea, new scenario and options). Each time you see a version (Quiz, Practice or Learn) the next one takes over, and the nightly sync writes a replacement (max 10 a night).
 - **Skip** (Quiz: to the back of the queue, once per question; Practice: no XP change) and **Learn first** (read the lesson, then answer; that topic comes back tomorrow).

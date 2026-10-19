@@ -206,6 +206,9 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
 .mbar i{display:block;height:100%}
 .mkeys{display:flex;flex-wrap:wrap;gap:6px 14px;font:500 .72rem/1.4 var(--mono);color:var(--muted)}
 .mkeys span{display:inline-flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums}.mkeys i{width:8px;height:8px;border-radius:2px;display:inline-block}
+.mkeys button{display:inline-flex;align-items:center;gap:5px;min-height:32px;padding:4px 10px;font:500 .72rem/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:16px}
+.mkeys button[aria-pressed="true"]{color:var(--ink);border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}.mkeys button:disabled{opacity:.4}
+.mlist .row{cursor:pointer;padding:9px 0}.mlist .pill{background:transparent;border:1.5px solid}
 .card h2.small{font:600 1rem/1.3 var(--display);margin:0}
 .empty h2{font:600 1.15rem/1.3 var(--display);margin:0}
 .empty p{margin:0;color:var(--muted)}
@@ -611,6 +614,7 @@ async function save(q, data) {
 // ---------- Progress: activity heatmap, streak, XP, mastery, sync now ----------
 const XP = { correct: 10, partial: 5, wrong: 2 };          // × (1 + 0.5 × stage): late recall is worth more
 const STAGE_COLORS = ["var(--bad)", "var(--warn)", "var(--yellow)", "var(--cyan)", "var(--accent)", "var(--pink)", "var(--good)"];
+let mfilter = "all";             // Progress → Mastery: which ladder step's topics to list
 let ACT = {}, actLoaded = false, STATS = {}, mcp = null, tab = "quiz", writeChain = Promise.resolve(), checkedToday = false;
 const pad = n => String(n).padStart(2, "0");
 const dkey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -690,12 +694,28 @@ function renderProgress() {
   // Mastery: topics per ladder step (from the last sync)
   const mc = el("section", "card"); mc.append(el("h2", "small", "Mastery"));
   if (ms && total) {
-    const bar = el("div", "mbar"), keys = el("div", "mkeys");
+    const bar = el("div", "mbar"), keys = el("div", "mkeys"), list = el("div", "rows mlist");
+    const chip = (f, label, dotColor, n) => {        // tap a step to list its topics; "All" lists every topic, weakest first
+      const k = el("button"); k.type = "button"; k.setAttribute("aria-pressed", String(mfilter === f)); k.disabled = !n;
+      if (dotColor) { const dot = el("i"); dot.style.background = dotColor; k.append(dot); }
+      k.append(`${label} ${n}`); k.onclick = () => { mfilter = f; renderProgress(); }; keys.append(k);
+    };
+    chip("all", "All", null, total);
     stages.forEach((c, i) => {
       if (c) { const seg = el("i"); seg.style.width = (c / total * 100) + "%"; seg.style.background = STAGE_COLORS[i]; seg.title = `${WAIT[i]}d: ${c}`; bar.append(seg); }
-      const k = el("span"); const dot = el("i"); dot.style.background = STAGE_COLORS[i]; k.append(dot, `${WAIT[i]}d ${c}`); keys.append(k);
+      chip(i, `${WAIT[i]}d`, STAGE_COLORS[i], c);
     });
-    mc.append(bar, keys, el("p", "hint", `${total} topics · updated ${String(ms.updated || "").replace("T", " ")}`));
+    const name = p => LESSONS[p]?.t || p.split("/").pop().replace(/\.md$/, "");
+    Object.entries(ms.by_page || {}).filter(([, st]) => mfilter === "all" || st === mfilter)
+      .sort((a, b) => a[1] - b[1] || name(a[0]).localeCompare(name(b[0])))
+      .forEach(([p, st]) => {
+        const row = el("div", "row"), d = el("div"), pill = el("span", "pill", `${WAIT[st]}d`);
+        pill.style.color = pill.style.borderColor = STAGE_COLORS[st];
+        d.append(el("b", null, name(p)));
+        row.append(d, pill); row.onclick = () => { if (LESSONS[p]) { showTab("learn"); openLesson(p); } };
+        list.append(row);
+      });
+    mc.append(bar, keys, list, el("p", "hint", `${total} topics · tap one to open its lesson · updated ${String(ms.updated || "").replace("T", " ")}`));
   } else mc.append(el("p", "hint", "Appears after the next sync."));
 
   // Sync now (fires the scheduled sync task; needs the Mac awake)
@@ -767,7 +787,7 @@ tabBtns.forEach(b => b.onclick = () => showTab(b.dataset.t));
 showTab("quiz");
 
 // ---------- Practice: one question at a time, swap animation, hard mode, icon ----------
-const VERSION = "1.18.0";
+const VERSION = "1.19.0";
 document.getElementById("version").textContent = `Purrsist v${VERSION} · Second Brain Kit`;
 const ICONS = ["🧠", "🦉", "🐉", "🚀", "⚡", "🔥", "🐺", "🦊", "🐙", "🤖", "🛰️", "🗝️"];
 let POOL = [], bag = [], pfilter = "all", combo = 0, practiceStarted = false, current = null, hard = false;
