@@ -2,6 +2,13 @@
 
 The quiz page shows its version under **Settings → About**. To update an existing setup, type `/update-second-brain` in Cowork (or paste [`UPDATE_PROMPT.md`](UPDATE_PROMPT.md) if you set up before v1.14).
 
+## 1.18.0
+- **Never the same question twice:** every question has 2 rewrites (same idea, new scenario and options). Each time you see a version (Quiz, Practice or Learn) the next one takes over, and the nightly sync writes a replacement (max 10 a night).
+- **Skip** (Quiz: to the back of the queue, once per question; Practice: no XP change) and **Learn first** (read the lesson, then answer; that topic comes back tomorrow).
+- **Flag** takes several reasons (new: "Answers unclear") and skips the question; flagged questions aren't scored.
+- Default theme is now **Match phone**: GitHub Light by day, GitHub Dark at night. A theme you already picked stays.
+- Update needs: say **write rewrites** in a vault session (adds 2 rewrites to every existing question; `python3 .sync/sync.py . --check` must print `[]`). The sync task prompt changed: update it from `SETUP_PROMPT.md` step 6 (new rewrites step).
+
 ## 1.17.0
 - The app is now called **Purrsist**, and the repo moved to github.com/smir22/purrsist (the old second-brain-kit link redirects). All screenshots retaken.
 - Update needs: nothing extra.

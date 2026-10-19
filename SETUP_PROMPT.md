@@ -34,8 +34,9 @@ Set up Purrsist (the Second Brain Kit) for me from https://github.com/smir22/pur
 > 3. Run: python3 .sync/sync.py . .sync/inbox.json
 > 4. For each array in the output's "batches": one ArtifactData batch call with those writes, unchanged.
 > 5. If "calendar" is not null: create a Google Calendar event (my time zone) using its title, date, start, end and description.
-> 6. If "summary" is empty, nothing was loaded and "waiting_topics" is 0: reply "Nothing due" and stop. Otherwise reply with the summary as short bullets, plus any needs_bank / refresh_bank pages.
-> Never run git. Never edit vault files yourself — sync.py does all vault changes. If a step fails, report the error in one line and stop.
+> 6. If "needs_variants" is not empty: write new question rewrites into those pages, at most 10 in total, following the **rewrites** rule in the vault's CLAUDE.md (only add to `alts` inside `## Question bank`). Then run `python3 .sync/sync.py . --check`; it must print `[]` (fix anything it lists).
+> 7. If "summary" is empty, nothing was loaded and "waiting_topics" is 0: reply "Nothing due" and stop. Otherwise reply with the summary as short bullets, plus any needs_bank / refresh_bank pages and how many rewrites you wrote.
+> Never run git. Never edit vault files yourself except the rewrites in step 6 — sync.py does all other vault changes. If a step fails, report the error in one line and stop.
 
 If I said no to calendar reminders, leave step 5 out of that prompt.
 

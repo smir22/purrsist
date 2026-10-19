@@ -120,4 +120,49 @@ with tempfile.TemporaryDirectory() as d:
     assert "wiki/tech/Topic A.md" in out7["refresh_bank"] and any("Flagged questions: 2" in s for s in out7["summary"])
     assert sum(w["op"] == "delete" and w["collection"] == "answers" for b in out7["batches"] for w in b) == 2
 
+# v1.18: flagged ("skip") answers aren't scored; all flagged -> same step, back tomorrow; "Learn first" -> day 1;
+# every question keeps 2 unused rewrites ("alts"): using a version (quiz load, practice/learn answer) rotates in the next one.
+from sync import result
+assert result(["correct", "skip", "correct"]) == "pass" and result(["skip", "skip"]) == "flagged"
+
+def qv(name, alts):
+    q = {"kind": "recall", "prompt": name, "answer": "a", "points": ["p"], "options": ["a", "b", "c", "d"], "correct": 0}
+    return {**q, "alts": [{**q, "prompt": f"{name}v{j}"} for j in (1, 2)]} if alts else q
+
+def mk(v, name, stage, alts=False, due="2026-10-20"):
+    sets = [[qv(f"{name}{s}{k}", alts) for k in range(3)] for s in range(3)]
+    (v / f"wiki/tech/{name}.md").write_text(f"---\ntags: [tech]\nreview: true\nstage: {stage}\nnext_review: {due}\nlast_result: pass\nbank_set: 0\n---\n\n# {name}\n\nbody\n\n## Weak spots\n\n## My notes\n\n## Question bank\n```json\n{json.dumps(sets, indent=1)}\n```\n")
+
+with tempfile.TemporaryDirectory() as d:
+    v = Path(d); (v / "wiki/tech").mkdir(parents=True); (v / "log.md").write_text("# Log\n")
+    for name in ("B", "C", "D"):
+        mk(v, name, 3, due="2026-11-30")
+    mk(v, "E", 1, alts=True)
+    qrow = lambda name, k: {"id": f"{name}-{k}", "version": 1, "data": {"page": f"wiki/tech/{name}.md", "topic": name, "order": k}}
+    arow = lambda name, k, verdict, **x: {"id": f"{name}-{k}", "version": 1, "data": {"verdict": verdict, "missing": [], **x}}
+    inbox = {"questions": [qrow(n, k) for n in "BCD" for k in range(3)],
+             "answers": [arow("B", 0, "correct"), arow("B", 1, "skip"), arow("B", 2, "correct"),
+                         *[arow("C", k, "skip") for k in range(3)],
+                         arow("D", 0, "correct", assisted=True), arow("D", 1, "correct"), arow("D", 2, "correct"),
+                         {"id": "p-9", "version": 1, "data": {"mode": "practice", "page": "wiki/tech/E.md", "verdict": "correct", "prompt": "E10"}}]}
+    out = run(v, inbox, dt.datetime(2026, 10, 20, 21, 0))
+    B, C, D, E = [(v / f"wiki/tech/{n}.md").read_text() for n in "BCDE"]
+    assert "stage: 4" in B and "next_review: 2026-11-20" in B, B[:200]                       # skip ignored -> pass
+    assert "stage: 3" in C and "next_review: 2026-10-21" in C and "last_result: pass" in C    # all flagged -> same step, tomorrow
+    assert "stage: 0" in D and "next_review: 2026-10-21" in D and any("learned first" in x for x in out["summary"])
+    eb = json.loads(re.search(r"```json\n(.*?)\n```", E, re.S).group(1))
+    served = [w["data"]["prompt"] for b in out["batches"] for w in b if w["collection"] == "questions" and w["op"] == "set"]
+    assert served[:3] == ["E00", "E01", "E02"], served                                          # originals served first
+    assert [q["prompt"] for q in eb[0]] == ["E00v1", "E01v1", "E02v1"] and len(eb[0][0]["alts"]) == 1   # then the rewrites
+    assert eb[1][0]["prompt"] == "E10v1" and eb[1][1]["prompt"] == "E11"                         # practice answer rotated E10 only
+    assert all("alts" not in json.dumps(w.get("data", {})) for b in out["batches"] for w in b if w["collection"] in ("questions", "bank"))
+    nv = {x["page"]: x["missing"] for x in out["needs_variants"]}
+    assert nv["wiki/tech/E.md"] == 4 and nv["wiki/tech/B.md"] == 18, nv                         # 3 + 1 used in E; B has none
+
+    from sync import check_banks
+    assert check_banks(v) == [], check_banks(v)[:3]
+    (v / "wiki/tech/E.md").write_text(E.replace('"E11v2",', '"E11",', 1).replace('"correct": 0', '"correct": 7', 1))
+    probs = check_banks(v)
+    assert any("correct 0-3" in x for x in probs) and any("new prompt" in x for x in probs), probs
+
 print("ok")

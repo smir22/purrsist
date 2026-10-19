@@ -110,6 +110,7 @@ After each page is quizzed:
    - Distractors: near-misses / common misconceptions that differ from the right answer in one key detail; same length and shape as the correct option (it must not be the longest — keep options short, detail goes in `answer`); none arguably correct
    - Never ask about code the learner can't see ("in your serve.py…"). Either add a `code` field with the snippet (≤10 lines, ≤40 chars wide so it fits a phone) or make the question general. No trivia (ports, file paths, README steps)
    - every question also has `answer` (model answer) + `points` (key points, `points[0]` = core idea) for the optional "Write answers" mode
+   - every question also has `alts`: 2 rewrites for later reviews (see **rewrites** below)
    - target weak spots first
    - then write the page's `## Lesson` (see **lessons** below)
 6. **Day-0 check now:** one `teach` question per new concept in chat. Gaps → weak spots.
@@ -129,14 +130,15 @@ After each page is quizzed:
 
 ### sync  (scheduled nightly, "Sync now" on the quiz page, or "sync quiz")
 Phone quiz page: [QUIZ_URL] (db via the ArtifactData tool).
-All logic lives in `.sync/sync.py` (scoring, ladder, weak spots, log, due topics, bank rotation, calendar, mastery stats for the Progress tab, practice answers → weak spots, changed question-bank shards for the Practice tab). The model only moves JSON:
+All logic lives in `.sync/sync.py` (scoring, ladder, weak spots, log, due topics, bank rotation, question rewrites swapping in after each use, calendar, mastery stats for the Progress tab, practice answers → weak spots, changed question-bank shards for the Practice tab). The model only moves JSON:
 1. ArtifactData `list` on `questions`, `answers` and `stats`; list `bank` with `out_dir` (ids + versions only). If both empty AND nothing is due (`grep -l "^next_review:" -r wiki builds` dates ≤ today) → reply "Nothing due" and stop.
 2. Write `{"questions": [rows], "answers": [rows], "stats": [rows], "bank": [{id, version}]}` (rows exactly as listed: id, data, version) to `.sync/inbox.json`.
 3. `python3 .sync/sync.py . .sync/inbox.json` → JSON out.
 4. Each entry in `batches` → one ArtifactData `batch` call, passed as-is.
 5. `calendar` not null → Google Calendar create_event (Europe/London) with its title/date/start/end/description.
 6. Reply with `summary` bullets. `needs_bank` / `refresh_bank` pages → mention them; Claude writes banks next chat session (not during sync).
-Scoring (in sync.py): correct 1, partial 0.5, wrong 0 → avg ≥0.8 pass, ≥0.5 shaky, else fail. Self-check: `python3 .sync/test_sync.py`.
+7. `needs_variants` not empty → write rewrites (see **rewrites**), max 10 per run, then `python3 .sync/sync.py . --check` must print `[]`.
+Scoring (in sync.py): correct 1, partial 0.5, wrong 0 → avg ≥0.8 pass, ≥0.5 shaky, else fail. Flagged questions (`skip`) aren't scored; all flagged → same step, back tomorrow. A topic answered after **Learn first** goes back to day 1. Self-check: `python3 .sync/test_sync.py`.
 
 ### import  ("import <folder/project/notes>", "process inbox", or bulk-adding things already learned)
 For material learned before the vault existed (course notes, a project repo, old chats) or files dropped in `raw/inbox/`.
@@ -157,8 +159,15 @@ The Learn tab teaches weak topics from the page's `## Lesson` (placed after the 
 - Explain every term on first use (assume DevOps background, new to the domain). Short sentences, no filler. Must cover everything the page's question bank asks. Accuracy over flourish.
 - After writing or changing lessons, publish banks for Practice (lessons travel with the bank; reading them costs no tokens).
 
+### rewrites  ("write rewrites", or when a sync reports `needs_variants`)
+Every question keeps 2 unused rewrites in `alts`, so a later review never shows the same question again. Each time a version is used (Quiz, Practice or Learn), sync.py swaps in the next rewrite and drops the used one; `needs_variants` lists pages with questions short of 2.
+- Same `kind` and same core idea (`points[0]`), but a new scenario or angle, new wording and freshly written options. Never the old prompt with options shuffled.
+- A full question object (`prompt`, `options`, `correct`, `answer`, `points`, `code` if needed) with no `alts` of its own. Same rules as the question bank (distractors, code, no trivia).
+- Append to that question's `alts`; never change the current version or other questions.
+- Then `python3 .sync/sync.py . --check` must print `[]`. Nothing to publish: a rewrite reaches the phone when it becomes the current version.
+
 ### refresh banks  ("refresh banks", or when a sync reports refresh_bank / needs_bank)
-For each flagged page: **first fix every question listed under `## Flagged questions`** (flagged on the phone: wrong answer / unclear / needs code / too easy). Rewrite that question in place, even in a used set: correct it, clarify it, add a `code` snippet, or make it harder. Then delete those lines (and the heading if empty). Then write 1–2 new question sets (same format, all with options), targeting `## Weak spots` first, and append them to the page's question bank. Never edit used sets except to fix a flagged question. Publish banks after.
+For each flagged page: **first fix every question listed under `## Flagged questions`** (flagged on the phone: wrong answer / unclear / needs code / too easy). Rewrite that question in place, even in a used set: correct it, clarify it, add a `code` snippet, or make it harder. Fix its `alts` too if they share the problem; if the flagged prompt is no longer in the bank (already used and swapped out), check that question's current version and rewrites instead. Then delete those lines (and the heading if empty). Then write 1–2 new question sets (same format: options and 2 `alts` each), targeting `## Weak spots` first, and append them to the page's question bank. Never edit used sets except to fix a flagged question. Publish banks after.
 
 ### capture  (always on)
 In any session in this vault: when a concept comes up that has no page in the folder `_index.md` (the user learns it, asks about it, or uses it in a build), offer in one line: "Add <concept> to your quiz?" Yes → write the page + bank, `stage: 0`, due tomorrow. Never add without a yes.

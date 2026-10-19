@@ -43,10 +43,11 @@ Keep a tally: fixed vs still shaky.
 
 **Question bank:** `## Question bank` + a ```json block, 3 sets of `[recall, apply, teach]`:
 - every question: `{kind, prompt, options:[4], correct:<index>, answer, points}`. The quiz is tap-only by default, so all three kinds need options (vary the correct position); `answer`/`points` serve the optional written mode
+- every question also has `alts`: 2 rewrites for later reviews (same `kind` and core idea, but a new scenario, wording and options; full question objects with no `alts` of their own). A review never repeats a question.
 - Distractors: near-misses / common misconceptions that differ from the right answer in one key detail; same length and shape as the correct option (it must not be the longest — keep options short, detail goes in `answer`); none arguably correct
 - Never ask about code the learner can't see ("in your serve.py…"). Either add a `code` field with the snippet (≤10 lines, ≤40 chars wide so it fits a phone) or make the question general. No trivia (ports, file paths, README steps)
 - recall: key fact · apply: realistic prod / interview / design scenario · teach: "Explain X to a junior…" (as MCQ: which explanation is right)
-- `points[0]` = core idea. **Set 1 targets the still-shaky gaps**, then the other gaps, then the rest. Validate the JSON loads (3×3).
+- `points[0]` = core idea. **Set 1 targets the still-shaky gaps**, then the other gaps, then the rest. Then `python3 .sync/sync.py . --check` (in the vault) must print `[]`.
 - Pure facts (ports, flags, vocab) → also `anki/new-cards.txt`.
 - **Lesson:** also write the page's `## Lesson` for the Learn tab: 4–7 `### ` steps that teach the topic from zero (problem → idea → their real code line by line → gotchas from the weak spots → recap). Follow the vault `CLAUDE.md` **lessons** rules exactly.
 - After writing, publish banks for Practice (see vault `CLAUDE.md`).

@@ -1,9 +1,10 @@
 <title>Purrsist</title>
+<script>/* theme before first paint, so there's no flash */ try { const s = localStorage.getItem("skin") || "system", e = s === "system" ? (matchMedia("(prefers-color-scheme: dark)").matches ? "github-dark" : "github-light") : s; if (e !== "dracula") document.documentElement.dataset.skin = e; } catch (e) {}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
 /* Layout: one narrow column, one question card at a time, thumb-reach actions at the bottom of the card */
-/* Themes: each sets base colours on <html data-skin>; soft/heat shades are derived. Default = Dracula. */
+/* Themes: each sets base colours on <html data-skin>; soft/heat shades are derived. No data-skin = Dracula; the app defaults to Match phone (GitHub Light/Dark). */
 :root{
   --bg:#21222c; --surface:#282a36; --ink:#f8f8f2; --muted:#a4abcf; --line:#44475a;
   --accent:#bd93f9; --on-accent:#21222c; --pink:#ff79c6; --cyan:#8be9fd; --yellow:#f1fa8c;
@@ -72,6 +73,8 @@ h1{font:700 1.6rem/1.1 var(--display);margin:0;text-wrap:balance;letter-spacing:
 .flag{margin-left:auto;min-height:30px;padding:4px 10px;font:500 .72rem/1 var(--mono);letter-spacing:.04em;color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:6px;text-align:center}
 .flag[disabled]{opacity:1;color:var(--good);border-color:var(--good)}
 .flagmenu{display:flex;flex-wrap:wrap;gap:6px}.flagmenu button{min-height:34px;padding:6px 10px;font-size:.8rem;text-align:center}
+.flagmenu button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.flagmenu .primary{flex:1 0 100%}.flagmenu .primary:disabled{opacity:.45}
 .pending{color:var(--warn);font-size:.82rem;margin:0}
 /* ---- the cat: monospace text art so it always lines up ---- */
 .tcat{display:flex;align-items:flex-end;gap:12px;margin:2px 0 0;min-height:2.6em}
@@ -285,19 +288,24 @@ const main = document.getElementById("main");
 let Q = [], A = new Map(), db = null, sample = null;
 let shownId = null, lastKey = "", busy = false, selfGrade = null;
 let LESSONS = {}, lessonOpen = null, lstreak = 0, lused = new Set();   // Learn tab
+let skipped = [], learnReturn = null;          // Quiz: skipped ids go to the back of the queue; "Learn first" returns to this question
+const assistedSet = () => { try { return new Set(JSON.parse(localStorage.getItem("assisted") || "[]")); } catch (e) { return new Set(); } };
+function markAssisted(id) { const s = assistedSet(); s.add(id); try { localStorage.setItem("assisted", JSON.stringify([...s].slice(-200))); } catch (e) {} }
+const lessonFor = q => LESSONS[q.page] || Object.values(LESSONS).find(x => x.t === q.topic);
 
 const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
 
 // Same scoring the vault sync uses: avg >= .8 pass, >= .5 shaky, else fail
-function topicResult(qs) {
-  const s = qs.map(q => SCORE[A.get(q.id)?.verdict] ?? 0);
+function topicResult(qs) {      // flagged (skip) answers don't count; all flagged → "flagged"
+  const s = qs.map(q => A.get(q.id)?.verdict).filter(v => v !== "skip").map(v => SCORE[v] ?? 0);
+  if (!s.length) return "flagged";
   const avg = s.reduce((a, b) => a + b, 0) / s.length;
   return avg >= 0.8 ? "pass" : avg >= 0.5 ? "shaky" : "fail";
 }
 function nextStage(stage, r) { return r === "pass" ? Math.min(stage + 1, 6) : r === "shaky" ? stage : 0; }
 
 function render() {
-  const pending = Q.filter(q => !A.has(q.id));
+  const pending = Q.filter(q => !A.has(q.id)).sort((a, b) => skipped.indexOf(a.id) - skipped.indexOf(b.id));   // skipped ones last
   const answered = Q.length - pending.length;
   const topics = [...new Set(Q.map(q => q.topic))];
   document.getElementById("prog").style.width = Q.length ? (answered / Q.length * 100) + "%" : "0";
@@ -330,7 +338,7 @@ function questionCard(q) {
   const c = el("section", "card");
   const stage = Number(q.stage) || 0;
   const meta = el("div", "meta");
-  meta.append(el("span", "chip", KIND[q.kind] || q.kind), el("span", "chip plain", `Stage ${stage} · ${WAIT[stage]}d gap`), flagBtn(q, c));
+  meta.append(el("span", "chip", KIND[q.kind] || q.kind), el("span", "chip plain", `Stage ${stage} · ${WAIT[stage]}d gap`), flagBtn(q, c, () => skipFlagged(q)));
   c.append(meta, el("h2", "topic", q.topic), ladder(stage), promptEl(q));
   if (q.code) c.append(el("pre", "code", q.code));
 
@@ -350,7 +358,7 @@ function questionCard(q) {
       };
       opts.append(b);
     });
-    c.append(opts, dontKnow(q));
+    c.append(opts, quizActions(q));
     return c;
   }
 
@@ -359,16 +367,37 @@ function questionCard(q) {
   if (selfGrade === q.id) { c.append(selfGradeBlock(q, ta.value)); return c; }
   const check = el("button", "primary", "Check answer");
   check.onclick = () => grade(q, ta.value, check);
-  const row = el("div", "actions"); row.append(check, dontKnow(q, true));
-  c.append(ta, row, el("p", "hint", "Tip: tap the mic on your keyboard to answer by voice."));
+  const row = el("div", "actions"); row.append(check);
+  c.append(ta, row, quizActions(q), el("p", "hint", "Tip: tap the mic on your keyboard to answer by voice."));
   return c;
 }
 
-function dontKnow(q, inline) {
-  const b = el("button", "ghost", "I don't know");
-  b.onclick = () => save(q, { response: "", verdict: "wrong", right: [], missing: q.points || [], tip: "" });
-  if (inline) return b;
-  const row = el("div", "actions"); row.append(b); return row;
+function quizActions(q) {        // I don't know · Skip (once, to the back of the queue) · Learn first (topic then comes back tomorrow)
+  const row = el("div", "actions");
+  const idk = el("button", "ghost", "I don't know");
+  idk.onclick = () => save(q, { response: "", verdict: "wrong", right: [], missing: q.points || [], tip: "" });
+  row.append(idk);
+  if (!skipped.includes(q.id) && Q.some(x => x.id !== q.id && !A.has(x.id))) {
+    const sk = el("button", "ghost", "Skip");
+    sk.onclick = () => { skipped.push(q.id); lastKey = ""; render(); };
+    row.append(sk);
+  }
+  const L = lessonFor(q);
+  if (L && !assistedSet().has(q.id)) {
+    const lf = el("button", "ghost", "Learn first");
+    lf.onclick = () => { markAssisted(q.id); showTab("learn"); learnReturn = q.id; openLesson(L.p); };
+    row.append(lf);
+  }
+  return row;
+}
+function backToQuestion() {     // end of a "Learn first" lesson: straight back to the question it came from
+  shownId = learnReturn; learnReturn = null; lessonOpen = null; showTab("quiz"); lastKey = ""; render(); window.scrollTo(0, 0);
+}
+function skipFlagged(q) {       // a flagged question isn't scored; its topic is marked on the other answers
+  if (A.has(q.id)) return;
+  const data = { response: "", verdict: "skip", right: [], missing: [], tip: "" };
+  A.set(q.id, data); shownId = null; lastKey = ""; render();
+  put("answers", q.id, { ...data, topic: q.topic, page: q.page || "", kind: q.kind, at: new Date().toISOString() }).catch(() => {});
 }
 
 async function grade(q, text, btn) {
@@ -456,11 +485,13 @@ function doneCard(topics) {
   const rows = el("div", "rows");
   topics.forEach(t => {
     const qs = Q.filter(q => q.topic === t), stage = Number(qs[0].stage) || 0;
-    const r = topicResult(qs), ns = nextStage(stage, r);
+    const r = topicResult(qs), helped = qs.some(q => A.get(q.id)?.assisted);
+    const ns = r === "flagged" ? stage : helped ? 0 : nextStage(stage, r);   // learned first = not real recall → day 1
     const row = el("div", "row"), d = el("div");
-    const days = WAIT[ns];
-    d.append(el("b", null, t), el("small", null, `Stage ${stage} → ${ns} · back in ${days} day${days === 1 ? "" : "s"}`));
-    row.append(d, el("span", "pill r-" + r, r)); rows.append(row);
+    const days = r === "flagged" ? 1 : WAIT[ns];
+    d.append(el("b", null, t), el("small", null, `Stage ${stage} → ${ns} · back in ${days} day${days === 1 ? "" : "s"}${helped && r !== "flagged" ? " · learned first" : ""}`));
+    const pill = r === "flagged" ? "flagged" : helped ? "learned" : r;
+    row.append(d, el("span", "pill r-" + (pill === r ? r : "shaky"), pill)); rows.append(row);
   });
   const more = el("button", "primary", "Keep going: practice");
   more.onclick = () => showTab("practice");
@@ -511,23 +542,28 @@ addEventListener("online", flush);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) flush(); });
 setInterval(flush, 30000);
 
-// ---------- Flag a bad question: logged on its vault page; "refresh banks" fixes flagged questions first ----------
-const FLAG_REASONS = ["Wrong answer", "Unclear", "Needs code", "Too easy"];
-function flagBtn(q, card) {
+// ---------- Flag a bad question (one or more reasons): logged on its vault page, fixed at "refresh banks"; the question is skipped ----------
+const FLAG_REASONS = ["Wrong answer", "Question unclear", "Answers unclear", "Needs code", "Too easy"];
+function flagBtn(q, card, then) {
   const b = el("button", "flag", "⚑ Flag"); b.type = "button"; b.setAttribute("aria-label", "Flag this question");
   b.onclick = e => {
     e.stopPropagation();
     if (card.querySelector(".flagmenu")) return card.querySelector(".flagmenu").remove();
-    const m = el("div", "flagmenu");
+    const m = el("div", "flagmenu"), picked = new Set();
+    const send = el("button", "primary", "Send"); send.type = "button"; send.disabled = true;
     FLAG_REASONS.forEach(r => {
-      const o = el("button", null, r); o.type = "button";
-      o.onclick = () => {
-        m.remove(); b.disabled = true; b.textContent = "Flagged ✓";
-        put("answers", `f-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          { mode: "flag", reason: r, page: q.page || "", topic: q.topic, prompt: q.prompt, at: new Date().toISOString() }).catch(() => {});
-      };
+      const o = el("button", null, r); o.type = "button"; o.setAttribute("aria-pressed", "false");
+      o.onclick = () => { picked.has(r) ? picked.delete(r) : picked.add(r); o.setAttribute("aria-pressed", String(picked.has(r))); send.disabled = !picked.size; };
       m.append(o);
     });
+    send.onclick = () => {
+      const reasons = FLAG_REASONS.filter(r => picked.has(r));
+      m.remove(); b.disabled = true; b.textContent = "Flagged ✓";
+      put("answers", `f-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        { mode: "flag", reason: reasons.join(" + "), reasons, page: q.page || "", topic: q.topic, prompt: q.prompt, at: new Date().toISOString() }).catch(() => {});
+      then?.();
+    };
+    m.append(send);
     b.closest(".meta").after(m);
   };
   return b;
@@ -559,6 +595,7 @@ function catBig(text) {                       // milestone pop-up in the middle 
 catDraw("idle");
 
 async function save(q, data) {
+  if (assistedSet().has(q.id)) data = { ...data, assisted: true };   // answered after "Learn first": sync sends the topic back to day 1
   shownId = q.id;
   A.set(q.id, data); lastKey = ""; render();              // show feedback straight away
   catReact(data.verdict === "correct" ? "right" : data.verdict === "partial" ? "almost" : "wrong");
@@ -685,7 +722,7 @@ function renderProgress() {
 }
 const tabBtns = document.querySelectorAll("#tabs button");
 function showTab(t) {
-  tab = t;
+  tab = t; if (t !== "learn") learnReturn = null;
   tabBtns.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.t === t)));
   for (const v of ["quiz", "learn", "practice", "progress", "settings"]) document.getElementById(v + "View").hidden = t !== v;
   if (t === "practice") startPractice();
@@ -695,9 +732,9 @@ function showTab(t) {
 
 // ---------- Themes (per device) ----------
 const SKINS = [   // [id, name, swatches: bg, surface, accent, pink, good]
+  ["system", "Match phone", "#f6f8fa #ffffff #0d1117 #161b22 #0969da"],   // default: GitHub Light by day, GitHub Dark at night
   ["dracula", "Dracula", "#21222c #282a36 #bd93f9 #ff79c6 #50fa7b"],
   ["alucard", "Dracula Light", "#f5f1e3 #fffbeb #644ac9 #a3144d #14710a"],
-  ["system", "Match phone", "#f4f5f8 #ffffff #141619 #1d2025 #3b5bdb"],
   ["light", "Light", "#f4f5f8 #ffffff #3b5bdb #c2255c #2b8a3e"],
   ["dark", "Dark", "#141619 #1d2025 #8ea2ff #f783ac #69db7c"],
   ["one-dark", "One Dark Pro", "#21252b #282c34 #61afef #c678dd #98c379"],
@@ -709,10 +746,10 @@ const SKINS = [   // [id, name, swatches: bg, surface, accent, pink, good]
   ["solarized-light", "Solarized Light", "#eee8d5 #fdf6e3 #268bd2 #d33682 #859900"],
 ];
 const darkMQ = matchMedia("(prefers-color-scheme: dark)");
-let skin = "dracula";
+let skin = "system";
 try { const s = localStorage.getItem("skin"); if (SKINS.some(k => k[0] === s)) skin = s; } catch (e) {}
 function applySkin() {
-  const eff = skin === "system" ? (darkMQ.matches ? "dark" : "light") : skin;
+  const eff = skin === "system" ? (darkMQ.matches ? "github-dark" : "github-light") : skin;
   if (eff === "dracula") delete document.documentElement.dataset.skin; else document.documentElement.dataset.skin = eff;
   document.querySelectorAll(".skin").forEach(b => b.setAttribute("aria-checked", String(b.dataset.k === skin)));
 }
@@ -730,7 +767,7 @@ tabBtns.forEach(b => b.onclick = () => showTab(b.dataset.t));
 showTab("quiz");
 
 // ---------- Practice: one question at a time, swap animation, hard mode, icon ----------
-const VERSION = "1.17.0";
+const VERSION = "1.18.0";
 document.getElementById("version").textContent = `Purrsist v${VERSION} · Second Brain Kit`;
 const ICONS = ["🧠", "🦉", "🐉", "🚀", "⚡", "🔥", "🐺", "🦊", "🐙", "🤖", "🛰️", "🗝️"];
 let POOL = [], bag = [], pfilter = "all", combo = 0, practiceStarted = false, current = null, hard = false;
@@ -768,6 +805,7 @@ function buildPool(shards) {
   sel.value = [...sel.options].some(o => o.value === cur) ? cur : "all";
   if (tab === "practice" && !current) nextCard();
   if (tab === "learn" && !lessonOpen) renderLearn();
+  if (!main.querySelector("textarea")?.value) { lastKey = ""; render(); }   // lessons arrived: show "Learn first"
 }
 function refill() {           // weighted shuffle: low ladder steps come up more often
   let pool = POOL;
@@ -788,7 +826,7 @@ let timer = null;
 const hardSeconds = () => combo >= 5 ? 10 : 15;   // 15 s to answer; after 5 right in a row it tightens to 10 s
 function cardFor(q) {
   const c = el("section", "card pcard enter"), stage = stageOf(q.page);
-  const meta = el("div", "meta"); meta.append(el("span", "chip", KIND[q.kind] || q.kind), el("span", "chip plain", `${q.topic} · ${WAIT[stage]}d`), flagBtn(q, c));
+  const meta = el("div", "meta"); meta.append(el("span", "chip", KIND[q.kind] || q.kind), el("span", "chip plain", `${q.topic} · ${WAIT[stage]}d`), flagBtn(q, c, () => skipCard(c)));
   const opts = el("div", "opts");
   c.append(meta, promptEl(q));
   if (q.code) c.append(el("pre", "code", q.code));
@@ -797,9 +835,11 @@ function cardFor(q) {
     b.onclick = () => answer(q, i, c, b, opts, stage);
     opts.append(b);
   });
-  if (!hard) { c.append(opts); return c; }
+  const sk = el("button", "ghost", "Skip"); sk.onclick = () => skipCard(c);      // no XP change, combo kept
+  const srow = el("div", "actions pskip"); srow.append(sk);
+  if (!hard) { c.append(opts, srow); return c; }
   const secs = hardSeconds(), tb = el("div", "tbar"), ti = el("i"), clock = el("span", "clock", `${secs}s`);
-  tb.append(ti); c.append(clock, tb, opts);
+  tb.append(ti); c.append(clock, tb, opts, srow);
   const end = Date.now() + secs * 1000;
   const tick = () => {                       // JS-driven so it counts down on every phone, reduce-motion included
     if (timer === null) return;
@@ -813,8 +853,10 @@ function cardFor(q) {
   timer = 0; tick();
   return c;
 }
+function skipCard(c) { if (c.dataset.done) return; c.dataset.done = "1"; nextCard(); }
 function answer(q, i, c, b, opts, stage) {
   if (c.dataset.done) return; c.dataset.done = "1";
+  c.querySelector(".pskip")?.remove();
   if (timer) cancelAnimationFrame(timer); timer = null;
   c.querySelector(".tbar")?.classList.add("stopped");
   const ok = i === Number(q.correct), verdict = ok ? "correct" : "wrong";
@@ -829,13 +871,13 @@ function answer(q, i, c, b, opts, stage) {
   c.append(el("span", "float " + (delta >= 0 ? "up" : "down"), `${delta >= 0 ? "+" : ""}${delta} XP`));
   if (ok && combo > 1) c.append(el("span", "combo", `Combo ×${combo}`));
   hud();
+  put("answers", `p-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,    // every answer: sync rotates in a rewrite of this question
+    { mode: "practice", page: q.page, topic: q.topic, kind: q.kind, prompt: q.prompt, verdict, missing: ok ? [] : [q.options[q.correct]], at: new Date().toISOString() }).catch(() => {});
   if (ok) { setTimeout(() => { if (current === q) nextCard(); }, 850); return; }
   if (i === -1) c.append(el("p", "hint timeout", "Time's up."));
   c.append(el("p", "hint", q.answer || q.options[q.correct]));
   const nx = el("button", "primary", "Next"); nx.onclick = nextCard;
   const row = el("div", "actions"); row.append(nx); learnBtn(q, row); c.append(row);
-  put("answers", `p-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    { mode: "practice", page: q.page, topic: q.topic, kind: q.kind, verdict, missing: [q.options[q.correct]], at: new Date().toISOString() }).catch(() => {});
 }
 function nextCard() {
   if (timer) cancelAnimationFrame(timer); timer = null;
@@ -871,7 +913,7 @@ const clearedMap = () => { try { return JSON.parse(localStorage.getItem("learned
 const setCleared = m => { try { localStorage.setItem("learned", JSON.stringify(m)); } catch (e) {} };
 function unclear(page) { const m = clearedMap(); if (m[page]) { delete m[page]; setCleared(m); } }
 function learnBtn(q, row) {
-  const L = LESSONS[q.page] || Object.values(LESSONS).find(x => x.t === q.topic); if (!L) return;
+  const L = lessonFor(q); if (!L) return;
   const b = el("button", "ghost", "Learn this"); b.onclick = () => { showTab("learn"); openLesson(L.p); }; row.append(b);
 }
 function weakTopics() {
@@ -944,8 +986,9 @@ function showStep(L, i) {
     c.append(el("h3", null, "Your weak spots"), u);
   }
   const last = i === S.length - 1;
-  const go = el("button", "primary", last ? "Test me" : "Next"); go.onclick = () => last ? check(L) : showStep(L, i + 1);
-  const back = el("button", "ghost", "Back"); back.onclick = () => i ? showStep(L, i - 1) : renderLearn();
+  const go = el("button", "primary", last ? (learnReturn ? "Answer the question" : "Test me") : "Next");
+  go.onclick = () => !last ? showStep(L, i + 1) : learnReturn ? backToQuestion() : check(L);
+  const back = el("button", "ghost", "Back"); back.onclick = () => i ? showStep(L, i - 1) : learnReturn ? backToQuestion() : renderLearn();
   const row = el("div", "actions"); row.append(go, back); c.append(row);
   document.getElementById("learnView").replaceChildren(c); window.scrollTo(0, 0);
 }
@@ -957,8 +1000,8 @@ function showLesson(L) {
   if (L.s) c.append(el("p", null, L.s));
   const list = (title, items, cls) => { if (!items?.length) return; const u = el("ul", cls); items.forEach(x => u.append(el("li", null, x))); c.append(el("h3", null, title), u); };
   list("Key points", L.k); list("Your weak spots", L.w?.map(x => x.replace(/^\((practice|learn)\)\s*/, "")), "weak");
-  const go = el("button", "primary", "Got it, test me"); go.onclick = () => check(L);
-  const back = el("button", "ghost", "Back"); back.onclick = renderLearn;
+  const go = el("button", "primary", learnReturn ? "Answer the question" : "Got it, test me"); go.onclick = () => learnReturn ? backToQuestion() : check(L);
+  const back = el("button", "ghost", "Back"); back.onclick = () => learnReturn ? backToQuestion() : renderLearn();
   const row = el("div", "actions"); row.append(go, back); c.append(row);
   document.getElementById("learnView").replaceChildren(c); window.scrollTo(0, 0);
 }
@@ -972,7 +1015,7 @@ function check(L) {
   left.sort((a, b) => missed.has(b.key) - missed.has(a.key) || Math.random() - .5);   // the questions you missed come first
   const q = left[0]; lused.add(q.key);
   const c = el("section", "card"), stage = stageOf(L.p);
-  const meta = el("div", "meta"); meta.append(el("span", "chip", KIND[q.kind] || q.kind), el("span", "chip plain", L.t), flagBtn(q, c));
+  const meta = el("div", "meta"); meta.append(el("span", "chip", KIND[q.kind] || q.kind), el("span", "chip plain", L.t), flagBtn(q, c, () => { if (!c.dataset.done) check(L); }));
   const opts = el("div", "opts");
   const dd = dots(); c.style.position = "relative";
   c.append(meta, dd, promptEl(q));
@@ -989,7 +1032,7 @@ function check(L) {
       const delta = practiceXP(ok, stage) + (ok && lstreak >= NEED ? 10 : 0);
       writeDay(d => ({ ...d, n: d.n + 1, [verdict[0]]: (d[verdict[0]] || 0) + 1, xp: d.xp + delta }));
       put("answers", `l-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        { mode: "learn", page: q.page, topic: q.topic, kind: q.kind, verdict, missing: [q.options[q.correct]], at: new Date().toISOString() }).catch(() => {});
+        { mode: "learn", page: q.page, topic: q.topic, kind: q.kind, prompt: q.prompt, verdict, missing: [q.options[q.correct]], at: new Date().toISOString() }).catch(() => {});
       c.classList.add(ok ? "good" : "bad");
       c.append(el("span", "float " + (delta >= 0 ? "up" : "down"), `+${delta} XP`));
       const row = el("div", "actions");
