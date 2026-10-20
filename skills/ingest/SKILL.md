@@ -50,6 +50,7 @@ Keep a tally: fixed vs still shaky.
 - `points[0]` = core idea. **Set 1 targets the still-shaky gaps**, then the other gaps, then the rest. Then `python3 .sync/sync.py . --check` (in the vault) must print `[]`.
 - Pure facts (ports, flags, vocab) → also `anki/new-cards.txt`.
 - **Lesson:** also write the page's `## Lesson` for the Learn tab: 4–7 `### ` steps that teach the topic from zero (problem → idea → their real code line by line → gotchas from the weak spots → recap). Follow the vault `CLAUDE.md` **lessons** rules exactly.
+- **Build it:** also write the page's `## Build it` exercises (an `order` exercise with trap lines and a Do / Don't `sort`) and include the lesson's `### Best practice` step. Follow the vault `CLAUDE.md` **build it** and **lessons** rules exactly.
 - After writing, publish banks for Practice (see vault `CLAUDE.md`).
 
 ## 6. Wrap up (3 lines)

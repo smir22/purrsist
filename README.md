@@ -17,7 +17,7 @@ Built on [Hussein Malki's obsidian-llm-brain](https://github.com/Husseinmalki/ob
 
 **What you get**
 - **Quiz:** tomorrow's due topics on your phone or Mac, multiple choice (or written answers marked by Claude), with code snippets where a question needs them. Skip, learn first or flag a question. **Never the same question twice:** each review asks a fresh rewrite. Works offline.
-- **Learn:** your weak topics as step-by-step lessons (the problem, the idea, your own code line by line, your past mistakes), then 2 right in a row to clear.
+- **Learn:** your weak topics as step-by-step lessons (the problem, the idea, your own code line by line, best practice, your past mistakes), a drag-and-drop **Build it** exercise, then 2 right in a row to clear.
 - **Practice:** endless questions from your whole bank, XP, combos and a timed hard mode.
 - **Progress:** streak, levels, a GitHub-style heatmap, and every topic by ladder step (filter by 1d, 3d, 7d …).
 - **The cat:** sits under the title showing your status and reacts to every answer (WOW! / oops / x3 combo! / LVL UP!).
@@ -25,10 +25,10 @@ Built on [Hussein Malki's obsidian-llm-brain](https://github.com/Husseinmalki/ob
 - **On your Mac:** `/ingest` after you learn something, `import` for older material, a nightly sync that moves topics up the ladder, calendar reminders, and `/update-second-brain` for new versions.
 
 <p align="center">
+  <img src="docs/screenshots/0-today.png" width="23%" alt="Today's topics: step badges, a late badge, step filter and Start all">
   <img src="docs/screenshots/1-question.png" width="23%" alt="A quiz question with four tap answers, the review ladder, and I don't know / Skip / Learn first">
-  <img src="docs/screenshots/2-feedback.png" width="23%" alt="Feedback after a correct answer">
   <img src="docs/screenshots/3-written.png" width="23%" alt="Written answer marked by Claude: what you got, what's missing, model answer and a tip">
-  <img src="docs/screenshots/4-results.png" width="23%" alt="Results screen showing where each topic moves on the ladder">
+  <img src="docs/screenshots/9-build.png" width="23%" alt="Build it: drag Dockerfile lines into best-practice order, traps left out">
 </p>
 <p align="center">
   <img src="docs/screenshots/8-learn.png" width="23%" alt="Learn tab: a step-by-step lesson with real code, 4 of 7">
@@ -36,7 +36,7 @@ Built on [Hussein Malki's obsidian-llm-brain](https://github.com/Husseinmalki/ob
   <img src="docs/screenshots/7-practice.png" width="23%" alt="Practice tab: one question at a time with level, XP, combo and hard mode">
   <img src="docs/screenshots/6-settings.png" width="23%" alt="Settings tab: theme picker with Match phone (default), Dracula, GitHub, Tokyo Night, Catppuccin, Nord and more">
 </p>
-<p align="center"><sub>Quiz: tap answers · feedback · written answers marked by Claude · where each topic moves next<br>Learn lesson · Progress · Practice (hard mode) · Settings (example data)</sub></p>
+<p align="center"><sub>Quiz: today's topics · a question · written answer marked by Claude · Build it<br>Learn lesson · Progress · Practice (hard mode) · Settings (example data)</sub></p>
 
 ---
 
@@ -98,6 +98,7 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 
 ### Quiz (phone or Mac)
 - **Open it:** tap the link in the 08:00 calendar event, or the pinned page in the Claude app sidebar. Tip: open it in Safari (signed in to claude.ai) → Share → **Add to Home Screen** for one-tap access, like an app.
+- **Today's topics:** the quiz opens on a list of today's topics with their step (1d, 3d…) and an "Nd late" badge. Tap one to do just its 3 questions, filter by step, or **Start all**.
 - **Tap answers (default):** every question is multiple choice. No typing, works one-handed.
 - **Skip:** sends the question to the back of today's queue (once per question).
 - **Learn first:** read the topic's lesson, then answer. That topic comes back tomorrow, because it wasn't recall from memory.
@@ -113,6 +114,7 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 ### Learn tab (phone)
 - Lists your weak topics (stage 0–1, missed questions, logged weak spots), most urgent first.
 - Tap one for a **step-by-step lesson** (4–7 short screens): the problem it solves, the idea in plain words, your own code explained line by line, the gotchas you've hit before, and a recap. Claude writes it once per topic into the page's `## Lesson`; reading it costs no tokens.
+- **Build it** (after the lesson): drag the lines of a real solution (a Dockerfile, a probe, a CI job…) into best-practice order and leave the trap lines out, then sort 8 practices into **Do / Don't**. Each tile shows why when you check. Drag with a mouse, or hold a tile then drag with your finger; tapping also moves it.
 - **Test me** → questions on that topic. Get **2 right in a row** to clear it; a miss shows why and sends you back to the lesson.
 - Missing a question in Quiz or Practice shows a **Learn this** button that opens that topic's lesson.
 - Learn never moves the ladder (only Quiz does); misses still become weak spots.
@@ -120,6 +122,7 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 
 ### Practice tab (phone)
 - **One question at a time** from your whole bank, as many as you like, with a smooth swap to the next. Weaker topics come up more often; filter to shaky topics or one topic.
+- Every 5th card is a **Build it** exercise from one of your topics.
 - Right: green glow, XP floats up, next question slides in. Wrong: quick shake, the right answer is shown, tap Next.
 - **Normal:** half XP (+1 even for a miss).
 - **Hard mode:** **15 seconds** per question, dropping to **10 seconds** once you get 5 right in a row (back to 15 after a miss), with a live countdown. Weak topics and questions you've missed before come up much more often. Full XP plus a combo bonus from 3 in a row; a miss or timeout costs the full XP value.
@@ -130,13 +133,14 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 
 ### Progress tab (phone)
 - **Streak:** days in a row you answered (or opened the quiz when nothing was due). One missed day a week is covered by an automatic freeze.
-- **Level & XP:** correct 10, partly 5, wrong 2 (for showing up), multiplied by the topic's ladder step, so remembering something after 31 days is worth more than after 1.
+- **Level & XP:** correct 10, partly 5, wrong 2 (for showing up), multiplied by the topic's ladder step, so remembering something after 31 days is worth more than after 1. Reviews done on their due day get +20%; each day late takes 10% off (never below half). XP is never taken away.
 - **Activity heatmap:** last 20 weeks, GitHub style.
 - **Mastery:** how many topics sit at each step of the ladder. "Mastered" = 31 days or more. This is the number that actually means you've learned it.
 - **Topics by step:** every topic with its current gap (1d, 3d, 7d …). Tap a step to filter, tap a topic to open its lesson.
 - **Sync now:** saves your answers into the vault straight away instead of waiting for the schedule (your Mac needs to be awake). The first tap asks permission to use the Claude Code Remote connector.
 
 ### Settings tab (phone)
+- **Daily quiz:** 3, 5 (default) or 8 topics a night, 3 questions each. Failed and overdue topics come first; the rest wait for the next night.
 - **Theme:** Match phone (default: GitHub Light by day, GitHub Dark at night), Dracula, Dracula Light, Light, Dark, One Dark Pro, GitHub Dark/Light, Tokyo Night, Catppuccin Mocha, Nord, Solarized Light. Saved per device.
 
 ### Notes (Mac, Obsidian)
@@ -152,6 +156,7 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 | `process inbox` | Same, for files you dropped into `raw/inbox/` |
 | `write lessons` | Writes step-by-step Learn lessons for any topic that doesn't have one |
 | `write rewrites` | Tops up every question to 2 ready rewrites (the nightly sync does this automatically, 10 a night) |
+| `write build exercises` | Adds a Best practice lesson step and Build it exercises to every topic that doesn't have them |
 | `refresh banks` | Fixes questions you flagged on the phone, and writes fresh questions for topics whose bank is used up |
 | `publish banks for practice` | Sends your lessons and questions to the phone straight away (otherwise the nightly sync does it) |
 | `sync quiz` | Runs the sync now from chat (same as **Sync now** on the phone) |

@@ -15,6 +15,7 @@ updated: YYYY-MM-DD
 - `import <folder or project>` / `process inbox` → turn older material into topics (3 new a day)
 - `write lessons` → step-by-step lessons for pages that don't have one
 - `write rewrites` → top up every question to 2 rewrites (the nightly sync also does this)
+- `write build exercises` → Best practice step + Build it exercises for topics that don't have them
 - `refresh banks` → fix flagged questions, fresh questions where a bank is used up
 - `publish banks for practice` → send lessons + questions to the phone now
 - `sync quiz` → run the sync now (or **Sync now** on the phone)

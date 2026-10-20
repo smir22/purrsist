@@ -208,7 +208,31 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
 .mkeys span{display:inline-flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums}.mkeys i{width:8px;height:8px;border-radius:2px;display:inline-block}
 .mkeys button{display:inline-flex;align-items:center;gap:5px;min-height:32px;padding:4px 10px;font:500 .72rem/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:16px}
 .mkeys button[aria-pressed="true"]{color:var(--ink);border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}.mkeys button:disabled{opacity:.4}
-.mlist .row{cursor:pointer;padding:9px 0}.mlist .pill{background:transparent;border:1.5px solid}
+/* Build it: drag tiles into order / into Do and Don't */
+.zone{min-height:60px;border:1.5px dashed var(--line);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:6px;transition:border-color .15s,background .15s}
+.zone.over{border-color:var(--accent);background:var(--accent-soft)}
+.zone .empty{color:var(--muted);font-size:.85rem;text-align:center;padding:10px 0;pointer-events:none}
+.zone.file{background:var(--bg);counter-reset:ln}.zone.file .btile{counter-increment:ln}
+.zone.file .btile::before{content:counter(ln);font:500 .7rem var(--mono);color:var(--muted);min-width:1.3em;text-align:right}
+.btile{display:flex;align-items:flex-start;gap:8px;width:100%;text-align:left;padding:10px 12px;min-height:44px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;cursor:grab;
+  font:500 .8rem/1.4 var(--mono);overflow-wrap:break-word;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
+.btile.text{font:500 .86rem/1.4 var(--body);hyphens:auto}
+.btile .t{flex:1 1 auto;min-width:0}.btile:not(.text) .t{white-space:pre-wrap}.btile .mark{font:600 .78rem var(--body);flex:0 0 auto}
+.btile.lifted{opacity:.25}
+.bghost{position:fixed;z-index:50;pointer-events:none;box-shadow:0 10px 28px rgba(0,0,0,.22);transform:rotate(-1.5deg) scale(1.02);margin:0}
+.slot{border-radius:8px;border:2px solid var(--accent);background:var(--accent-soft);flex:0 0 auto}
+.btile.ok{border-color:var(--good);background:var(--good-soft)}.btile.ok .mark{color:var(--good)}
+.btile.bad{border-color:var(--bad);background:var(--bad-soft)}.btile.bad .mark{color:var(--bad)}
+.btile.move{border-color:var(--warn);background:var(--warn-soft)}.btile.move .mark{color:var(--warn)}
+.bwhy{font-size:.8rem;line-height:1.4;color:var(--muted);margin:-2px 2px 4px}
+.bcols{display:grid;grid-template-columns:1fr 1fr;gap:8px}.bcols>div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.zone.do{border-color:color-mix(in srgb, var(--good) 55%, var(--line))}.zone.dont{border-color:color-mix(in srgb, var(--bad) 55%, var(--line))}
+.zh{font-weight:600;font-size:.85rem}.zh.do{color:var(--good)}.zh.dont{color:var(--bad)}
+.bres{margin:0;font-weight:600}.bres.good{color:var(--good)}.bres.meh{color:var(--warn)}.bres.bad{color:var(--bad)}
+@media (prefers-reduced-motion: reduce){.zone{transition:none}.bghost{transform:none}}
+.blabel{font:500 .72rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:4px 0 0}
+.mlist .row{cursor:pointer;padding:9px 0}.mlist .row.done{cursor:default;opacity:.6}
+.backlink{align-self:flex-start;min-height:30px;padding:2px 0;border:0;background:transparent;font-size:.82rem}.mlist .pill{background:transparent;border:1.5px solid}
 .card h2.small{font:600 1rem/1.3 var(--display);margin:0}
 .empty h2{font:600 1.15rem/1.3 var(--display);margin:0}
 .empty p{margin:0;color:var(--muted)}
@@ -268,6 +292,15 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
   </section>
   <section id="settingsView" class="view" hidden>
     <section class="card">
+      <h2 class="small">Daily quiz</h2>
+      <div class="mode" id="cap" role="group" aria-label="Topics per day">
+        <button type="button" data-n="3">3 topics</button>
+        <button type="button" data-n="5">5 topics</button>
+        <button type="button" data-n="8">8 topics</button>
+      </div>
+      <p class="hint">Topics loaded each night, 3 questions each. Failed and overdue topics come first. Applies from the next sync.</p>
+    </section>
+    <section class="card">
       <h2 class="small">Theme</h2>
       <div class="skins" id="skins" role="radiogroup" aria-label="Theme"></div>
       <p class="hint">Saved on this device.</p>
@@ -291,6 +324,7 @@ const main = document.getElementById("main");
 let Q = [], A = new Map(), db = null, sample = null;
 let shownId = null, lastKey = "", busy = false, selfGrade = null;
 let LESSONS = {}, lessonOpen = null, lstreak = 0, lused = new Set();   // Learn tab
+let quizTopic = null, qfilter = "all";       // Quiz: the topic picked from today's list ("*" = all), and the list's step filter
 let skipped = [], learnReturn = null;          // Quiz: skipped ids go to the back of the queue; "Learn first" returns to this question
 const assistedSet = () => { try { return new Set(JSON.parse(localStorage.getItem("assisted") || "[]")); } catch (e) { return new Set(); } };
 function markAssisted(id) { const s = assistedSet(); s.add(id); try { localStorage.setItem("assisted", JSON.stringify([...s].slice(-200))); } catch (e) {} }
@@ -309,6 +343,9 @@ function nextStage(stage, r) { return r === "pass" ? Math.min(stage + 1, 6) : r 
 
 function render() {
   const pending = Q.filter(q => !A.has(q.id)).sort((a, b) => skipped.indexOf(a.id) - skipped.indexOf(b.id));   // skipped ones last
+  let scoped = quizTopic && quizTopic !== "*" ? pending.filter(q => q.topic === quizTopic) : pending;
+  if (quizTopic && quizTopic !== "*" && !scoped.length && !shownId) { quizTopic = null; scoped = pending; }   // topic finished: back to the list
+  const picking = !quizTopic && !shownId && new Set(pending.map(q => q.topic)).size > 1;
   const answered = Q.length - pending.length;
   const topics = [...new Set(Q.map(q => q.topic))];
   document.getElementById("prog").style.width = Q.length ? (answered / Q.length * 100) + "%" : "0";
@@ -317,11 +354,11 @@ function render() {
     ? `${answered} of ${Q.length} answered · ${topics.length} topic${topics.length === 1 ? "" : "s"}`
     : "Nothing loaded yet";
 
-  const cur = Q.find(q => q.id === shownId) || pending[0] || null;
-  const key = !Q.length ? "empty" : !cur ? "done:" + A.size : cur.id + (shownId ? ":fb" : "") + (selfGrade ? ":self" : "");
+  const cur = Q.find(q => q.id === shownId) || scoped[0] || null;
+  const key = !Q.length ? "empty" : picking ? `pick:${A.size}:${qfilter}:${Q.length}` : !cur ? "done:" + A.size : cur.id + (shownId ? ":fb" : "") + (selfGrade ? ":self" : "");
   if (key === lastKey) return;          // keep typed text when a snapshot arrives
   lastKey = key;
-  main.replaceChildren(!Q.length ? emptyCard() : !cur ? doneCard(topics) : questionCard(cur));
+  main.replaceChildren(!Q.length ? emptyCard() : picking ? pickCard() : !cur ? doneCard(topics) : questionCard(cur));
 }
 
 function emptyCard() {
@@ -341,7 +378,13 @@ function questionCard(q) {
   const c = el("section", "card");
   const stage = Number(q.stage) || 0;
   const meta = el("div", "meta");
-  meta.append(el("span", "chip", KIND[q.kind] || q.kind), el("span", "chip plain", `Stage ${stage} · ${WAIT[stage]}d gap`), flagBtn(q, c, () => skipFlagged(q)));
+  const late = lateDays(q);
+  meta.append(el("span", "chip", KIND[q.kind] || q.kind), el("span", "chip plain", `Stage ${stage} · ${WAIT[stage]}d gap${late > 0 ? ` · ${late}d late` : ""}`), flagBtn(q, c, () => skipFlagged(q)));
+  if (Q.some(x => !A.has(x.id) && x.topic !== q.topic) && !(shownId === q.id && A.get(q.id))) {
+    const back = el("button", "ghost backlink", "← Today's topics");
+    back.onclick = () => { quizTopic = null; shownId = null; lastKey = ""; render(); };
+    c.append(back);
+  }
   c.append(meta, el("h2", "topic", q.topic), ladder(stage), promptEl(q));
   if (q.code) c.append(el("pre", "code", q.code));
 
@@ -476,10 +519,55 @@ function feedback(q, a) {
   list("You got", a.right); list("Missing", a.missing);
   f.append(el("h3", null, "Model answer"), el("p", null, q.answer || ""));
   if (a.tip && a.tip !== "Self-marked") f.append(el("h3", null, "Make it stronger"), el("p", null, a.tip));
-  const next = el("button", "primary", Q.some(x => !A.has(x.id)) ? "Next question" : "See results");
+  const f0 = xpFactor(q), late = lateDays(q);
+  if (q.due) f.append(el("p", "hint", late > 0 ? `${late} day${late === 1 ? "" : "s"} late: ${Math.round(f0 * 100)}% XP` : "On time: +20% XP"));
+  const inScope = x => !A.has(x.id) && (!quizTopic || quizTopic === "*" || x.topic === quizTopic);
+  const others = new Set(Q.filter(x => !A.has(x.id)).map(x => x.topic)).size;
+  const next = el("button", "primary", Q.some(inScope) ? "Next question" : others > 1 ? "Back to today's topics" : others ? "Next topic" : "See results");
   next.onclick = () => { shownId = null; render(); };
   const row = el("div", "actions"); row.append(next); if (a.verdict !== "correct") learnBtn(q, row); f.append(row);
   return f;
+}
+
+// Due date -> days late. On time earns a 20% bonus; each day late takes 10% off that review's XP (never below half).
+const dayNum = s => Math.floor(Date.parse(s + "T00:00:00Z") / 864e5);
+const lateDays = q => q.due ? Math.max(0, dayNum(dkey(new Date())) - dayNum(q.due)) : 0;
+const xpFactor = q => !q.due ? 1 : lateDays(q) ? Math.max(0.5, 1 - 0.1 * lateDays(q)) : 1.2;
+
+function pickCard() {            // today's topics: tap one to do just its questions, or start all
+  const c = el("section", "card"), left = Q.filter(q => !A.has(q.id));
+  const all = [...new Set(Q.map(q => q.topic))].map(t => {
+    const qs = Q.filter(q => q.topic === t);
+    return { t, qs, stage: Number(qs[0].stage) || 0, left: qs.filter(q => !A.has(q.id)).length, late: lateDays(qs[0]) };
+  });
+  const open = all.filter(x => x.left);
+  c.append(el("h2", "topic", "Today"), el("p", "hint", `${left.length} question${left.length === 1 ? "" : "s"} left in ${open.length} topics. Pick one, or start all.`));
+  const steps = [...new Set(open.map(x => x.stage))].sort((a, b) => a - b);
+  if (qfilter !== "all" && !steps.includes(qfilter)) qfilter = "all";
+  if (steps.length > 1) {
+    const keys = el("div", "mkeys");
+    [["all", "All", null, open.length], ...steps.map(st => [st, `${WAIT[st]}d`, STAGE_COLORS[st], open.filter(x => x.stage === st).length])].forEach(([f, label, col, n]) => {
+      const k = el("button"); k.type = "button"; k.setAttribute("aria-pressed", String(qfilter === f));
+      if (col) { const dot = el("i"); dot.style.background = col; k.append(dot); }
+      k.append(`${label} ${n}`); k.onclick = () => { qfilter = f; lastKey = ""; render(); }; keys.append(k);
+    });
+    c.append(keys);
+  }
+  const rows = el("div", "rows mlist");
+  all.filter(x => qfilter === "all" || x.stage === qfilter)
+    .sort((a, b) => !a.left - !b.left || b.late - a.late || a.stage - b.stage)
+    .forEach(x => {
+      const row = el("div", "row"), d = el("div"), pill = el("span", "pill", `${WAIT[x.stage]}d`);
+      pill.style.color = pill.style.borderColor = STAGE_COLORS[x.stage];
+      d.append(el("b", null, x.t), el("small", null, x.left ? `${x.qs.length - x.left} of ${x.qs.length} done${x.late ? ` · ${x.late}d late` : ""}` : "Done ✓"));
+      row.append(d, pill);
+      if (x.left) { row.onclick = () => { quizTopic = x.t; lastKey = ""; render(); window.scrollTo(0, 0); }; row.tabIndex = 0; row.onkeydown = e => { if (e.key === "Enter") row.onclick(); }; }
+      else row.classList.add("done");
+      rows.append(row);
+    });
+  const go = el("button", "primary", "Start all"); go.onclick = () => { quizTopic = "*"; lastKey = ""; render(); };
+  const act = el("div", "actions"); act.append(go);
+  c.append(rows, act); return c;
 }
 
 function doneCard(topics) {
@@ -604,7 +692,7 @@ async function save(q, data) {
   catReact(data.verdict === "correct" ? "right" : data.verdict === "partial" ? "almost" : "wrong");
   try {
     await put("answers", q.id, { ...data, topic: q.topic, page: q.page || "", kind: q.kind, at: new Date().toISOString() });
-    logDay(data.verdict, Number(q.stage) || 0);
+    logDay(data.verdict, Number(q.stage) || 0, xpFactor(q));
   } catch (e) {
     A.delete(q.id); shownId = null; lastKey = ""; render();
     document.getElementById("sub").textContent = e?.code === "quota_exceeded" ? "Storage full. Ask Claude to sync your vault." : "Couldn't save that answer. Check your signal and try again.";
@@ -787,10 +875,10 @@ tabBtns.forEach(b => b.onclick = () => showTab(b.dataset.t));
 showTab("quiz");
 
 // ---------- Practice: one question at a time, swap animation, hard mode, icon ----------
-const VERSION = "1.19.0";
+const VERSION = "1.21.0";
 document.getElementById("version").textContent = `Purrsist v${VERSION} · Second Brain Kit`;
 const ICONS = ["🧠", "🦉", "🐉", "🚀", "⚡", "🔥", "🐺", "🦊", "🐙", "🤖", "🛰️", "🗝️"];
-let POOL = [], bag = [], pfilter = "all", combo = 0, practiceStarted = false, current = null, hard = false;
+let pcount = 0, POOL = [], bag = [], pfilter = "all", combo = 0, practiceStarted = false, current = null, hard = false;
 try { hard = localStorage.getItem("hard") === "1"; } catch (e) {}
 const stageOf = page => Number(STATS.mastery?.by_page?.[page] ?? 0);
 const myIcon = () => STATS.profile?.icon || ICONS[0];
@@ -814,7 +902,7 @@ function hud() {
 }
 function buildPool(shards) {
   POOL = []; LESSONS = {};
-  for (const sh of shards) for (const t of sh.topics || []) if (t.l) LESSONS[t.p] = { t: t.t, p: t.p, ...t.l };
+  for (const sh of shards) for (const t of sh.topics || []) if (t.l) LESSONS[t.p] = { t: t.t, p: t.p, ...t.l, b: t.b };
   for (const sh of shards) for (const t of sh.topics || []) (t.sets || []).flat().forEach((q, i) => {
     if (Array.isArray(q.options) && q.options.length) POOL.push({ ...q, topic: t.t, page: t.p, key: t.p + "#" + i });
   });
@@ -908,10 +996,19 @@ function nextCard() {
     stageEl.replaceChildren(e); return;
   }
   if (!bag.length) refill();
-  const q = bag.shift(); if (!q) return;
   const old = stageEl.querySelector(".pcard:not(.leave)");
-  current = q;
-  const card = cardFor(q);
+  const builds = Object.values(LESSONS).filter(L => buildKinds(L).length &&
+    (pfilter === "all" || (pfilter === "weak" ? stageOf(L.p) <= 1 : pfilter === "t:" + L.t)));
+  let card;
+  if (++pcount % 5 === 0 && builds.length) {             // every 5th card: a Build it exercise
+    const L = builds[Math.floor(Math.random() * builds.length)], ks = buildKinds(L), k = ks[Math.floor(Math.random() * ks.length)];
+    current = { key: "build:" + L.p, page: L.p };
+    card = buildCard(L, k, (v, m) => { logBuild(L, k, v, m, "practice"); hud(); }, "Next", nextCard);
+    card.classList.add("pcard", "enter");
+  } else {
+    const q = bag.shift(); if (!q) return;
+    current = q; card = cardFor(q);
+  }
   if (old) { old.classList.add("leave"); setTimeout(() => old.remove(), 300); }
   else stageEl.replaceChildren();
   stageEl.append(card);
@@ -925,6 +1022,161 @@ function startPractice() {
   sel.onchange = () => { pfilter = sel.value; bag = []; nextCard(); };
   document.getElementById("phard").onclick = () => { hard = !hard; combo = 0; try { localStorage.setItem("hard", hard ? "1" : "0"); } catch (e) {} hud(); bag = []; nextCard(); };
   nextCard();
+}
+
+// ---------- Build it: put a best-practice solution in order (leaving the traps out), or sort practices into Do / Don't ----------
+// Drag with a mouse, or hold a tile briefly then drag with a finger; a tap moves it instead.
+let bdrag = null, bscroll = null;
+function bTile(item, cls, onTap, onMove) {
+  const b = el("button", "btile " + cls); b.type = "button"; b.dataset.id = item.id;
+  b.append(el("span", "t", item.t), el("span", "mark"));
+  b.addEventListener("contextmenu", e => e.preventDefault());
+  b.addEventListener("pointerdown", e => {
+    if (e.button > 0) return;
+    const p = { tile: b, x: e.clientX, y: e.clientY, id: e.pointerId, active: false, touch: e.pointerType !== "mouse", onTap, onMove };
+    p.timer = p.touch ? setTimeout(() => bBegin(p), 150) : null;
+    bdrag = p;
+  });
+  b.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onTap(b); } });
+  return b;
+}
+function bBegin(p) {
+  if (bdrag !== p || p.active) return;
+  p.active = true; clearTimeout(p.timer);
+  const r = p.tile.getBoundingClientRect();
+  p.dx = p.x - r.left; p.dy = p.y - r.top;
+  p.ghost = p.tile.cloneNode(true); p.ghost.classList.add("bghost"); p.ghost.style.width = r.width + "px"; document.body.append(p.ghost);
+  p.slot = el("div", "slot"); p.slot.style.height = r.height + "px"; p.tile.after(p.slot); p.tile.classList.add("lifted");
+  try { navigator.vibrate?.(8); } catch (e) {}
+  bPlace(p.x, p.y);
+  cancelAnimationFrame(bscroll);
+  const step = () => {                       // near the screen edge while dragging: scroll the page
+    if (!bdrag?.active) return;
+    const y = bdrag.y, v = y < 70 ? -Math.ceil((70 - y) / 6) : y > innerHeight - 70 ? Math.ceil((y - innerHeight + 70) / 6) : 0;
+    if (v) { scrollBy(0, v); bPlace(bdrag.x, bdrag.y); }
+    bscroll = requestAnimationFrame(step);
+  };
+  bscroll = requestAnimationFrame(step);
+}
+function bPlace(x, y) {
+  const p = bdrag; if (!p?.active) return;
+  p.x = x; p.y = y; p.ghost.style.left = (x - p.dx) + "px"; p.ghost.style.top = (y - p.dy) + "px";
+  const zone = document.elementFromPoint(x, y)?.closest(".zone");
+  document.querySelectorAll(".zone.over").forEach(z => z !== zone && z.classList.remove("over"));
+  if (!zone || !zone.closest(".card")?.contains(p.tile)) return;
+  zone.classList.add("over");
+  const before = [...zone.querySelectorAll(".btile")].filter(t => t !== p.tile).find(t => { const r = t.getBoundingClientRect(); return y < r.top + r.height / 2; });
+  before ? zone.insertBefore(p.slot, before) : zone.append(p.slot);
+  zone.querySelector(".empty")?.remove();
+}
+function bFinish(cancelled) {
+  const p = bdrag; bdrag = null; if (!p) return;
+  clearTimeout(p.timer); cancelAnimationFrame(bscroll);
+  if (!p.active) { if (!cancelled) p.onTap(p.tile); return; }
+  if (!cancelled && p.slot.parentNode) p.slot.replaceWith(p.tile); else p.slot.remove();
+  p.tile.classList.remove("lifted"); p.ghost.remove();
+  document.querySelectorAll(".zone.over").forEach(z => z.classList.remove("over"));
+  p.onMove();
+}
+addEventListener("pointermove", e => {
+  const p = bdrag; if (!p || e.pointerId !== p.id) return;
+  if (!p.active) {
+    if (Math.hypot(e.clientX - p.x, e.clientY - p.y) <= 8) return;
+    if (p.touch) { clearTimeout(p.timer); bdrag = null; return; }      // finger moved before the hold: it's a scroll
+    bBegin(p);
+  }
+  bPlace(e.clientX, e.clientY);
+});
+addEventListener("pointerup", e => { if (bdrag && e.pointerId === bdrag.id) bFinish(false); });
+addEventListener("pointercancel", e => { if (bdrag && e.pointerId === bdrag.id) bFinish(!bdrag.active); });
+document.addEventListener("touchmove", e => { if (bdrag?.active) e.preventDefault(); }, { passive: false });   // no page scroll mid-drag
+
+const bw = t => { const p = el("p", "bwhy"); p.append(inline(t)); return p; };
+const bShuffle = a => shuffled(a.length).map(i => a[i]);
+const bEmpty = (zone, text) => { zone.querySelectorAll(".empty").forEach(n => zone.querySelector(".btile") && n.remove()); if (!zone.querySelector(".btile, .slot, .empty")) zone.append(el("div", "empty", text)); };
+const bClear = c => { c.querySelectorAll(".btile").forEach(t => { t.classList.remove("ok", "bad", "move"); t.querySelector(".mark").textContent = ""; }); c.querySelectorAll(".bwhy, .bres").forEach(n => n.remove()); };
+// One exercise card. kind "order" | "sort". done(verdict, missing) runs after the first Check; next() moves on.
+function buildCard(L, kind, done, nextLabel, next) {
+  const ex = L.b[kind], c = el("section", "card build");
+  const meta = el("div", "meta"); meta.append(el("span", "chip", kind === "order" ? "Build it" : "Do or don't"), el("span", "chip plain", L.t));
+  const pr = el("p", "prompt"); pr.append(inline(ex.prompt));
+  c.append(meta, el("h2", "topic", ex.title), pr);
+  const res = el("div"), act = el("div", "actions"), chk = el("button", "primary", "Check"), nx = el("button", "ghost", nextLabel);
+  let reported = false;
+  const report = (verdict, missing, text) => {
+    res.replaceChildren(el("p", "bres " + (verdict === "correct" ? "good" : verdict === "partial" ? "meh" : "bad"), text));
+    catReact(verdict === "correct" ? "right" : verdict === "partial" ? "almost" : "wrong");
+    if (!reported) { reported = true; done(verdict, missing); }
+    nx.className = "primary"; chk.className = "ghost";
+  };
+  nx.onclick = next;
+  if (kind === "order") {
+    const file = el("div", "zone file"), pool = el("div", "zone");
+    const tidy = () => { bClear(c); bEmpty(file, "Drag lines here, top to bottom"); bEmpty(pool, "All lines used"); };
+    const tap = t => { (t.parentNode === file ? pool : file).append(t); tidy(); };
+    bShuffle([...ex.lines, ...ex.traps]).forEach(x => pool.append(bTile(x, "", tap, tidy)));
+    const byId = Object.fromEntries([...ex.lines, ...ex.traps].map(x => [x.id, x])), trap = id => ex.traps.some(t => t.id === id);
+    chk.onclick = () => {
+      bClear(c);
+      const used = [...file.querySelectorAll(".btile")].map(t => t.dataset.id);
+      let ok = 0, bad = 0, moved = 0; const miss = [];
+      file.querySelectorAll(".btile").forEach((t, i) => {
+        const x = byId[t.dataset.id], late = (x.after || []).filter(d => used.indexOf(d) > i);
+        let cls = "ok", mark = "✓", why = x.why;
+        if (trap(x.id)) { cls = "bad"; mark = "✗ bad practice"; bad++; miss.push(x.why); }
+        else if (late.length) { cls = "move"; mark = "↕ out of order"; moved++; why = `Goes below ${late.map(d => byId[d].t).join(" and ")}. ${x.why}`; miss.push(why); }
+        else ok++;
+        t.classList.add(cls); t.querySelector(".mark").textContent = mark; t.after(bw(why));
+      });
+      pool.querySelectorAll(".btile").forEach(t => { if (trap(t.dataset.id)) { t.classList.add("ok"); t.querySelector(".mark").textContent = "✓ left out"; t.after(bw(byId[t.dataset.id].why)); } });
+      const missing = ex.lines.filter(l => !used.includes(l.id));
+      missing.forEach(l => miss.push(`Missing: ${l.t}`));
+      const perfect = ok === ex.lines.length && !bad && !moved;
+      report(perfect ? "correct" : bad ? "wrong" : "partial", miss.slice(0, 3), perfect ? "Every line in place, every trap left out." :
+        [`${ok} of ${ex.lines.length} in place`, moved && `${moved} out of order`, missing.length && `${missing.length} missing`, bad && `${bad} bad-practice line${bad > 1 ? "s" : ""}`].filter(Boolean).join(" · "));
+    };
+    const show = el("button", "ghost", "Show answer");
+    show.onclick = () => { const m = new Map([...c.querySelectorAll(".btile")].map(t => [t.dataset.id, t])); ex.lines.forEach(l => file.append(m.get(l.id))); ex.traps.forEach(l => pool.append(m.get(l.id))); tidy(); chk.onclick(); };
+    act.append(chk, show, nx);
+    c.append(el("p", "blabel", ex.label || "Your solution"), file, el("p", "blabel", "Lines"), pool, act, res); tidy();
+  } else {
+    const pool = el("div", "zone"), doZ = el("div", "zone do"), dontZ = el("div", "zone dont");
+    doZ.dataset.k = "do"; dontZ.dataset.k = "dont";
+    const tidy = () => { bClear(c); bEmpty(pool, "All sorted"); bEmpty(doZ, "Drop here"); bEmpty(dontZ, "Drop here"); };
+    const nextZone = { do: dontZ, dont: pool };
+    const tap = t => { (nextZone[t.parentNode.dataset.k] || doZ).append(t); tidy(); };
+    bShuffle(ex.items).forEach(x => pool.append(bTile(x, "text", tap, tidy)));
+    const cols = el("div", "bcols"), c1 = el("div"), c2 = el("div");
+    c1.append(el("span", "zh do", "✓ Do"), doZ); c2.append(el("span", "zh dont", "✗ Don't"), dontZ); cols.append(c1, c2);
+    chk.onclick = () => {
+      bClear(c);
+      let right = 0, wrong = 0; const miss = [];
+      for (const [z, want] of [[doZ, true], [dontZ, false]]) z.querySelectorAll(".btile").forEach(t => {
+        const x = ex.items.find(i => i.id === t.dataset.id), good = !!x.do === want;
+        good ? right++ : (wrong++, miss.push(`${x.do ? "Do" : "Don't"}: ${x.t}`));
+        t.classList.add(good ? "ok" : "bad"); t.querySelector(".mark").textContent = good ? "✓" : "✗"; t.after(bw(x.why));
+      });
+      const left = pool.querySelectorAll(".btile").length, perfect = right === ex.items.length;
+      report(perfect ? "correct" : wrong ? "wrong" : "partial", miss.slice(0, 3), perfect ? `All ${ex.items.length} sorted right.` :
+        [`${right} of ${ex.items.length} right`, wrong && `${wrong} in the wrong column`, left && `${left} still to sort`].filter(Boolean).join(" · "));
+    };
+    act.append(chk, nx);
+    c.append(el("p", "blabel", "Practices"), pool, cols, act, res); tidy();
+  }
+  return c;
+}
+function logBuild(L, kind, verdict, missing, mode) {     // counts for streak/XP; misses become weak spots at the next sync
+  const stage = stageOf(L.p), ok = verdict === "correct";
+  writeDay(d => ({ ...d, n: d.n + 1, [verdict[0]]: (d[verdict[0]] || 0) + 1, xp: d.xp + (ok ? practiceXP(true, stage) : 1) }));
+  put("answers", `b-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    { mode, build: kind, page: L.p, topic: L.t, verdict, missing, at: new Date().toISOString() }).catch(() => {});
+}
+const buildKinds = L => ["order", "sort"].filter(k => L.b?.[k]);
+function showBuild(L, i) {          // Learn: lesson -> Build it (order, then sort) -> Test me
+  const kinds = buildKinds(L); if (i >= kinds.length) return check(L);
+  const last = i === kinds.length - 1;
+  const card = buildCard(L, kinds[i], (v, m) => logBuild(L, kinds[i], v, m, "learn"), last ? "Test me" : "Next", () => showBuild(L, i + 1));
+  document.getElementById("learnView").replaceChildren(card); window.scrollTo(0, 0);
 }
 
 // ---------- Learn: short lesson for a weak topic, then 2 right in a row to clear it ----------
@@ -1006,8 +1258,9 @@ function showStep(L, i) {
     c.append(el("h3", null, "Your weak spots"), u);
   }
   const last = i === S.length - 1;
-  const go = el("button", "primary", last ? (learnReturn ? "Answer the question" : "Test me") : "Next");
-  go.onclick = () => !last ? showStep(L, i + 1) : learnReturn ? backToQuestion() : check(L);
+  const build = buildKinds(L).length && !learnReturn;
+  const go = el("button", "primary", last ? (learnReturn ? "Answer the question" : build ? "Build it" : "Test me") : "Next");
+  go.onclick = () => !last ? showStep(L, i + 1) : learnReturn ? backToQuestion() : build ? showBuild(L, 0) : check(L);
   const back = el("button", "ghost", "Back"); back.onclick = () => i ? showStep(L, i - 1) : learnReturn ? backToQuestion() : renderLearn();
   const row = el("div", "actions"); row.append(go, back); c.append(row);
   document.getElementById("learnView").replaceChildren(c); window.scrollTo(0, 0);
@@ -1020,7 +1273,8 @@ function showLesson(L) {
   if (L.s) c.append(el("p", null, L.s));
   const list = (title, items, cls) => { if (!items?.length) return; const u = el("ul", cls); items.forEach(x => u.append(el("li", null, x))); c.append(el("h3", null, title), u); };
   list("Key points", L.k); list("Your weak spots", L.w?.map(x => x.replace(/^\((practice|learn)\)\s*/, "")), "weak");
-  const go = el("button", "primary", learnReturn ? "Answer the question" : "Got it, test me"); go.onclick = () => learnReturn ? backToQuestion() : check(L);
+  const go = el("button", "primary", learnReturn ? "Answer the question" : buildKinds(L).length ? "Build it" : "Got it, test me");
+  go.onclick = () => learnReturn ? backToQuestion() : buildKinds(L).length ? showBuild(L, 0) : check(L);
   const back = el("button", "ghost", "Back"); back.onclick = () => learnReturn ? backToQuestion() : renderLearn();
   const row = el("div", "actions"); row.append(go, back); c.append(row);
   document.getElementById("learnView").replaceChildren(c); window.scrollTo(0, 0);
@@ -1075,6 +1329,11 @@ function check(L) {
   c.append(opts);
   document.getElementById("learnView").replaceChildren(c); window.scrollTo(0, 0);
 }
+// Daily quiz size (read by the sync from stats/prefs)
+const capBtns = document.querySelectorAll("#cap button");
+function showCap() { const n = STATS.prefs?.max_topics || 5; capBtns.forEach(b => b.setAttribute("aria-pressed", String(Number(b.dataset.n) === n))); }
+capBtns.forEach(b => b.onclick = () => { const n = Number(b.dataset.n); STATS = { ...STATS, prefs: { max_topics: n } }; showCap(); put("stats", "prefs", { max_topics: n }).catch(() => {}); });
+showCap();
 // Icon picker (saved on the quiz page, so it follows you across devices)
 const iconBox = document.getElementById("icons");
 function showIcons() { iconBox.querySelectorAll("button").forEach(b => b.setAttribute("aria-checked", String(b.textContent === myIcon()))); }
@@ -1101,7 +1360,7 @@ async function boot() {
     if (qSeen && !Q.length) markChecked();
     if (tab === "progress") renderProgress();
   }, () => {});
-  db.collection("stats").onSnapshot(s => { STATS = Object.fromEntries(s.docs.map(d => [d.id, d.data()])); showIcons(); if (tab === "progress") renderProgress(); if (tab === "practice") hud(); }, () => {});
+  db.collection("stats").onSnapshot(s => { STATS = Object.fromEntries(s.docs.map(d => [d.id, d.data()])); showIcons(); showCap(); if (tab === "progress") renderProgress(); if (tab === "practice") hud(); }, () => {});
   showPending(); flush();
   db.collection("bank").onSnapshot(s => { buildPool(s.docs.map(d => d.data())); }, () => {});
   db.collection("questions").orderBy("order").onSnapshot(s => {

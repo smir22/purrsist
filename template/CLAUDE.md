@@ -112,7 +112,7 @@ After each page is quizzed:
    - every question also has `answer` (model answer) + `points` (key points, `points[0]` = core idea) for the optional "Write answers" mode
    - every question also has `alts`: 2 rewrites for later reviews (see **rewrites** below)
    - target weak spots first
-   - then write the page's `## Lesson` (see **lessons** below)
+   - then write the page's `## Lesson` (see **lessons** below) and `## Build it` (see **build it** below)
 6. **Day-0 check now:** one `teach` question per new concept in chat. Gaps → weak spots.
 7. Pure facts (vocab, ports, flags) → also Anki cards.
 8. Update `_index.md` files, append `log.md`.
@@ -155,9 +155,20 @@ For material learned before the vault existed (course notes, a project repo, old
 The Learn tab teaches weak topics from the page's `## Lesson` (placed after the intro bullets, before `## Weak spots`). It must TEACH someone meeting the topic for the first time, on a phone, in 3–5 minutes. Not recall bullets.
 - **Format:** `## Lesson`, then 4–7 steps, each `### <short heading>` = one phone screen (~60–130 words + optional code). Only paragraphs, `- ` / `1. ` lists, fenced code with a language, **bold**, `inline code`. No tables, links, images or other headings.
 - **Code:** ≤12 lines, ≤40 chars per line (wrap by hand so it stays valid), `...` to elide. Quote the learner's REAL code (read the source repo); if there is none, a small realistic example labelled "for example". Never present invented code as theirs.
-- **Shape:** the problem (what breaks without it, a concrete scenario) → the idea (plain words, one analogy only if it helps) → how it works in their code, line by line → more detail as needed → gotchas (use the page's `## Weak spots`) → recap (3–4 bullets, key terms **bold**).
+- **Shape:** the problem (what breaks without it, a concrete scenario) → the idea (plain words, one analogy only if it helps) → how it works in their code, line by line → more detail as needed → gotchas (use the page's `## Weak spots`) → `### Best practice` (one lead sentence + 3–5 **do / don't** bullets, each with a short why; 50–170 words) → recap (3–4 bullets, key terms **bold**).
 - Explain every term on first use (assume DevOps background, new to the domain). Short sentences, no filler. Must cover everything the page's question bank asks. Accuracy over flourish.
 - After writing or changing lessons, publish banks for Practice (lessons travel with the bank; reading them costs no tokens).
+
+### build it  ("write build exercises", or any `review: true` page without `## Build it`; also part of ingest/import)
+After a lesson, the Learn tab (and every 5th Practice card) shows two drag-and-drop exercises from the page's `## Build it` JSON, placed right after `## Lesson`:
+```json
+{"order": {"title": "...", "prompt": "...", "label": "Dockerfile", "lines": [{"id": "from", "t": "FROM python:3.11-slim", "after": [], "why": "..."}], "traps": [{"id": "latest", "t": "FROM python:latest", "why": "..."}]},
+ "sort": {"title": "Do or don't?", "prompt": "...", "items": [{"id": "s1", "t": "...", "do": true, "why": "..."}]}}
+```
+- `order`: 5–8 lines of a real artifact for the topic (Dockerfile, YAML, CLI, Python…), each one line ≤60 chars with its indentation, or short workflow steps when there's no code. `after` = ids that must come earlier: only real constraints, so every valid order passes. 2–3 `traps`: plausible bad-practice lines, never arguably fine. `label` names the artifact.
+- `sort`: exactly 8 practices, 4 `"do": true` and 4 false, ≤60 chars each.
+- Every `why` is one sentence (≤160 chars). Plain text in tiles (no backticks). Use the learner's real setup where the page has one. Accuracy first.
+- Then `python3 .sync/sync.py . --check` must print `[]`, and publish banks for Practice.
 
 ### rewrites  ("write rewrites", or when a sync reports `needs_variants`)
 Every question keeps 2 unused rewrites in `alts`, so a later review never shows the same question again. Each time a version is used (Quiz, Practice or Learn), sync.py swaps in the next rewrite and drops the used one; `needs_variants` lists pages with questions short of 2.

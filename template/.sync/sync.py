@@ -20,11 +20,12 @@ from pathlib import Path
 WAIT = [1, 3, 7, 14, 31, 60, 120]          # days per ladder stage
 SCORE = {"correct": 1.0, "partial": 0.5, "wrong": 0.0}
 RESERVE = 2                                # unused rewrites ("alts") kept ready for every question
-MAX_TOPICS = 8                             # topics waiting on the quiz page at once
+MAX_TOPICS = 5                             # topics loaded per day by default (quiz Settings → Daily quiz: stats/prefs.max_topics)
 BANK_SHARDS = 8                            # question banks published to the quiz page for Practice, split by page hash
 CONFIG = {"quiz_url": "", "reminder_start": "08:00", "reminder_end": "08:15"}   # overridden by .sync/config.json
 FM = re.compile(r"\A---\n(.*?)\n---\n", re.S)
 BANK = re.compile(r"^## Question bank\n+```json\n(.*?)\n```", re.S | re.M)
+BUILD = re.compile(r"^## Build it\n+```json\n(.*?)\n```", re.S | re.M)   # {"order": {...}, "sort": {...}} for the Build it exercises
 
 
 def result(verdicts):
@@ -136,8 +137,42 @@ def lesson(text):
     return {"s": summary, "k": keys, "w": list(dict.fromkeys(weak))[-5:], "m": ls.group(1).strip() if ls else ""}
 
 
+def build_it(text):
+    m = BUILD.search(text)
+    try:
+        return json.loads(m.group(1)) if m else None
+    except ValueError:
+        return None
+
+
+def build_problems(b):
+    bad, o, s = [], (b or {}).get("order"), (b or {}).get("sort")
+    if o:
+        lines, traps = o.get("lines") or [], o.get("traps") or []
+        ids = [x.get("id") for x in lines + traps]
+        if not (o.get("title") and o.get("prompt") and len(lines) >= 4 and traps):
+            bad.append("order needs a title, a prompt, 4+ lines and 1+ trap")
+        if len(set(ids)) != len(ids) or not all(x.get("t") and x.get("why") for x in lines + traps):
+            bad.append("order: every line and trap needs a unique id, t and why")
+        line_ids, done = {x.get("id") for x in lines}, set()
+        for _ in lines:                               # every "after" points at a line, with no loops
+            done |= {x.get("id") for x in lines if set(x.get("after") or []) <= done}
+        if any(set(x.get("after") or []) - line_ids for x in lines) or done != line_ids:
+            bad.append("order: 'after' must list line ids and have no loops")
+    if s:
+        items = s.get("items") or []
+        if not (s.get("title") and s.get("prompt") and len(items) >= 6 and {True, False} <= {i.get("do") for i in items}
+                and all(i.get("id") and i.get("t") and i.get("why") for i in items)):
+            bad.append("sort needs a title, a prompt and 6+ items (id, t, do true/false, why) with both Do and Don't")
+    return bad
+
+
 def entry(text, p, rel, sets):          # Practice sees only the current version of each question
-    return {"t": title(text, p.stem), "p": rel, "sets": [[bare(q) for q in s] for s in sets], "l": lesson(text)}
+    e = {"t": title(text, p.stem), "p": rel, "sets": [[bare(q) for q in s] for s in sets], "l": lesson(text)}
+    b = build_it(text)
+    if b:
+        e["b"] = b
+    return e
 
 
 def shards_of(vault):
@@ -167,6 +202,8 @@ def run(vault, inbox, now, force_bank=False):
     today, day = now.date(), now.date().isoformat()
     qs = {r["id"]: r for r in inbox.get("questions", [])}
     ans = {r["id"]: r for r in inbox.get("answers", [])}
+    st = {r["id"]: r for r in inbox.get("stats", [])}
+    cap = min(12, int0((st.get("prefs") or {}).get("data", {}).get("max_topics")) or MAX_TOPICS)
     state = vault / ".sync"
     state.mkdir(exist_ok=True)
     cfg = {**CONFIG, **(json.loads((state / "config.json").read_text()) if (state / "config.json").exists() else {})}
@@ -256,7 +293,7 @@ def run(vault, inbox, now, force_bank=False):
     due.sort(key=lambda d: d[:3])            # fails first, then oldest due
     order = max([int0(q["data"].get("order")) for q in qs.values() if q["data"].get("page") in queued] or [-1]) + 1
     loaded, needs_bank, refresh = [], [], []
-    for _, _, rel, p in due[:max(0, MAX_TOPICS - len(queued))]:
+    for _, _, rel, p in due[:max(0, cap - len(queued))]:
         text, meta = read_page(p)
         sets = bank(text)
         if not sets:
@@ -269,7 +306,7 @@ def run(vault, inbox, now, force_bank=False):
         topic, stage = title(text, p.stem), int0(meta.get("stage"))
         slug = re.sub(r"[^a-z0-9]+", "-", p.stem.lower()).strip("-")
         for k, q in enumerate(cur, 1):
-            doc = {**bare(q), "topic": topic, "page": rel, "stage": stage, "order": order}
+            doc = {**bare(q), "topic": topic, "page": rel, "stage": stage, "order": order, "due": meta.get("next_review", "")}
             order += 1
             writes.append({"op": "set", "collection": "questions", "doc_id": f"{slug}-{now:%Y%m%d%H}-{k}", "data": doc})
         sets[n % len(sets)] = [rotate(q) for q in cur]            # served once: next time this set shows its rewrites
@@ -279,7 +316,6 @@ def run(vault, inbox, now, force_bank=False):
     refresh += [p for p in dict.fromkeys(flagged) if p not in refresh]   # flagged questions get fixed at "refresh banks"
 
     # Mastery snapshot for the quiz page's Progress tab (stage counts after this run's updates).
-    st = {r["id"]: r for r in inbox.get("stats", [])}
     w = {"op": "set", "collection": "stats", "doc_id": "mastery",
          "data": {"stages": stages, "total": sum(stages), "by_page": by_page, "updated": now.isoformat(timespec="minutes")}}
     if "mastery" in st:
@@ -340,6 +376,8 @@ def check_banks(vault):
             rel = p.relative_to(vault).as_posix()
             if meta.get("review") != "true" or "## Question bank" not in text:
                 continue
+            if "## Build it" in text:
+                bad += [f"{rel} Build it: {x}" for x in (build_problems(build_it(text)) if build_it(text) else ["JSON doesn't load"])]
             m = BANK.search(text)
             try:
                 sets = json.loads(m.group(1))

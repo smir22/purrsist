@@ -2,6 +2,16 @@
 
 The quiz page shows its version under **Settings → About**. To update an existing setup, type `/update-second-brain` in Cowork (or paste [`UPDATE_PROMPT.md`](UPDATE_PROMPT.md) if you set up before v1.14).
 
+## 1.21.0
+- **Best practice + Build it:** every lesson gets a Best practice step (do's and don'ts with a why). After the lesson, two drag-and-drop exercises: put a real solution's lines in best-practice order while leaving the trap lines out, then sort 8 practices into Do / Don't. Build it also turns up in Practice (every 5th card). Misses become weak spots.
+- Update needs: say **write build exercises** in a vault session (adds the Best practice step and Build it exercises to existing topics; `python3 .sync/sync.py . --check` must print `[]`), then publish banks for Practice.
+
+## 1.20.0
+- **Today's topics:** the quiz opens on a list of today's topics (step badge, "Nd late" badge, step filter). Tap one to do just its questions, or Start all.
+- **Daily quiz size** in Settings: 3, 5 or 8 topics a night (default now 5, was 8).
+- **On-time XP:** +20% for a review on its due day, 10% less per day late (never below half). Nothing is ever taken away.
+- Update needs: nothing extra (the update copies the new sync script).
+
 ## 1.19.0
 - **Topics by step:** Progress → Mastery now lists every topic with its current gap (1d, 3d, 7d …). Tap a step to filter; tap a topic to open its lesson.
 - Update needs: nothing extra.

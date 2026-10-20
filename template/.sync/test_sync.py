@@ -165,4 +165,24 @@ with tempfile.TemporaryDirectory() as d:
     probs = check_banks(v)
     assert any("correct 0-3" in x for x in probs) and any("new prompt" in x for x in probs), probs
 
+    # Daily cap: stats/prefs.max_topics limits how many due topics load; question docs carry their due date
+    for k in range(6):
+        mk(v, f"T{k}", 0, alts=True, due="2026-10-21")
+    out = run(v, {"questions": [], "answers": [], "stats": [{"id": "prefs", "version": 1, "data": {"max_topics": 3}}]}, dt.datetime(2026, 10, 21, 21, 0))
+    docs = [w["data"] for b in out["batches"] for w in b if w["collection"] == "questions" and w["op"] == "set"]
+    assert len({d["page"] for d in docs}) == 3 and all(d["due"] for d in docs), docs[:2]
+
+    # Build it: a page's `## Build it` JSON ships with its bank entry and is checked by --check
+    from sync import shards_of, build_problems
+    good = {"order": {"title": "T", "prompt": "P", "lines": [{"id": f"l{i}", "t": f"line {i}", "why": "w", "after": [f"l{i-1}"] if i else []} for i in range(4)],
+                      "traps": [{"id": "x", "t": "bad", "why": "w"}]},
+            "sort": {"title": "T", "prompt": "P", "items": [{"id": f"s{i}", "t": f"item {i}", "do": i % 2 == 0, "why": "w"} for i in range(6)]}}
+    assert build_problems(good) == []
+    loop = json.loads(json.dumps(good)); loop["order"]["lines"][0]["after"] = ["l3"]
+    assert build_problems(loop) and build_problems({"sort": {"title": "T", "prompt": "P", "items": good["sort"]["items"][:3]}})
+    f = v / "wiki/tech/T0.md"; f.write_text(f.read_text().replace("## Weak spots", "## Build it\n```json\n" + json.dumps(good) + "\n```\n\n## Weak spots"))
+    sh, _ = shards_of(v)
+    assert [e for s in sh for e in s if e["p"] == "wiki/tech/T0.md"][0]["b"]["order"]["title"] == "T"
+    assert check_banks(v) == [x for x in check_banks(v) if "E.md" in x]                           # only the earlier broken page
+
 print("ok")
