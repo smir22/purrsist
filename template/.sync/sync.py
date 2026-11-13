@@ -5,6 +5,8 @@ Claude only moves JSON between the quiz page's db and this script:
   python3 sync.py <vault_dir> <inbox.json> [--now 2026-10-11T21:52]
 inbox.json = {"questions": [rows], "answers": [rows]}   (rows exactly as ArtifactData `list` returns: {"id","data","version"})
 Add --push-bank to resend every question-bank shard (after a failed run).
+  python3 sync.py <vault_dir> --needs    -> pages whose questions are short of rewrites: [{"page", "missing"}]
+  python3 sync.py <vault_dir> --lint     -> question quality warnings (unclear prompts, give-away options, missing code)
   python3 sync.py <vault_dir> --check    -> lists question-bank problems (run after writing questions or rewrites)
 Prints JSON: {"batches": [[ArtifactData batch writes <=50]], "calendar": {...}|null, "summary": [...], "needs_bank": [...], "refresh_bank": [...],
              "needs_variants": [{"page", "missing"}]}
@@ -21,6 +23,7 @@ WAIT = [1, 3, 7, 14, 31, 60, 120]          # days per ladder stage
 SCORE = {"correct": 1.0, "partial": 0.5, "wrong": 0.0}
 RESERVE = 2                                # unused rewrites ("alts") kept ready for every question
 MAX_TOPICS = 5                             # topics loaded per day by default (quiz Settings → Daily quiz: stats/prefs.max_topics)
+MAX_NEW = 2                                # brand-new topics (bank_set 0: never quizzed) started per day; the rest wait their turn
 BANK_SHARDS = 8                            # question banks published to the quiz page for Practice, split by page hash
 CONFIG = {"quiz_url": "", "reminder_start": "08:00", "reminder_end": "08:15"}   # overridden by .sync/config.json
 FM = re.compile(r"\A---\n(.*?)\n---\n", re.S)
@@ -37,7 +40,7 @@ def result(verdicts):
 
 
 def next_stage(stage, r):
-    return min(stage + 1, 6) if r == "pass" else stage if r in ("shaky", "flagged") else 0
+    return min(stage + 1, 6) if r == "pass" else stage if r in ("shaky", "flagged") else max(stage - 2, 0)   # fail: back two steps, not to day 1
 
 
 def read_page(p):
@@ -175,6 +178,11 @@ def entry(text, p, rel, sets):          # Practice sees only the current version
     return e
 
 
+def packs_of(meta):
+    """`pack: Docker` or `pack: Kubernetes, My notes` -> the packs a page belongs to (home tiles in the quiz page)."""
+    return [x.strip() for x in meta.get("pack", "").strip("[]").split(",") if x.strip()]
+
+
 def shards_of(vault):
     shards, short = [[] for _ in range(BANK_SHARDS)], []
     for folder in ("wiki", "builds"):
@@ -183,11 +191,34 @@ def shards_of(vault):
             sets = bank(text)
             if meta.get("review") == "true" and sets:
                 rel = p.relative_to(vault).as_posix()
-                shards[zlib.crc32(rel.encode()) % BANK_SHARDS].append(entry(text, p, rel, sets))
+                e = entry(text, p, rel, sets)
+                if packs_of(meta):
+                    e["k"] = packs_of(meta)           # no pack field = the page is in "My notes"
+                shards[zlib.crc32(rel.encode()) % BANK_SHARDS].append(e)
                 n = sum(max(0, RESERVE - len(q.get("alts") or [])) for s in sets for q in s)
                 if n:
                     short.append({"page": rel, "missing": n})
     return shards, short
+
+
+def unlink(s):
+    return re.sub(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]", lambda m: m.group(2) or m.group(1), s).strip()
+
+
+def labs_of(vault):
+    """Hands-on labs for the quiz page's Build tab: every builds/ page with a `rung:` field, its sections as markdown."""
+    out = []
+    for p in sorted((Path(vault) / "builds").rglob("*.md")):
+        text, meta = read_page(p)
+        m = FM.match(text)
+        if not m or not meta.get("rung"):
+            continue
+        parts = re.split(r"^## (.+)$", text[m.end():], flags=re.M)          # [intro, heading, body, heading, body, ...]
+        intro = [unlink(l) for l in parts[0].splitlines() if l.strip() and not l.startswith("# ")]
+        out.append({"t": title(text, p.stem), "p": p.relative_to(vault).as_posix(), "k": packs_of(meta), "rung": int0(meta.get("rung")),
+                    "time": meta.get("time_box", ""), "status": meta.get("status", "planned"), "goal": intro[0] if intro else "", "n": " ".join(intro[1:]),
+                    "s": [{"h": h.strip(), "b": unlink(b)} for h, b in zip(parts[1::2], parts[2::2]) if h.strip() != "Log"]})
+    return sorted(out, key=lambda x: (x["k"], x["rung"]))
 
 
 def int0(v):
@@ -227,11 +258,12 @@ def run(vault, inbox, now, force_bank=False):
             stage = int0(meta.get("stage"))
             r = result([ans[i]["data"].get("verdict") for i in ids])
             helped = r != "flagged" and any(ans[i]["data"].get("assisted") for i in ids)   # "Learn first" isn't recall
-            ns = 0 if helped else next_stage(stage, r)
+            ns = next_stage(stage, "fail" if helped else r)
             days = 1 if r == "flagged" else WAIT[ns]                 # every question flagged: same step, back tomorrow
             kv = {"stage": ns, "next_review": (today + dt.timedelta(days=days)).isoformat(), "updated": day}
             if r != "flagged":
                 kv["last_result"] = r
+                kv["miss_run"] = 0 if r == "pass" and not helped else int0(meta.get("miss_run")) + 1   # results in a row that weren't a clean pass
             text = set_fm(text, **kv)
             missing = list(dict.fromkeys(m for i in ids for m in (ans[i]["data"].get("missing") or [])[:3]))  # max 3 weak spots per question
             p.write_text(add_weak(text, missing, day))
@@ -259,6 +291,14 @@ def run(vault, inbox, now, force_bank=False):
                 if d.get("prompt") and use_prompt(sets, d["prompt"]):   # seen once: a rewrite takes its place
                     text = set_bank(text, sets)
                 p.write_text(text)
+            done.add(i)
+        elif d.get("mode") == "lab" and i not in done:           # "I finished this lab" tapped in the Build tab
+            p = vault / d.get("page", "")
+            if d.get("page") and p.exists():
+                text, _ = read_page(p)
+                p.write_text(set_fm(text, status="done", updated=day))
+                summary.append(f"Lab done: {title(text, p.stem)}")
+                log.append(f"[[{p.stem}]] lab done")
             done.add(i)
         elif d.get("mode") == "flag" and i not in done:          # a bad question flagged on the phone
             p = vault / d.get("page", "")
@@ -289,11 +329,20 @@ def run(vault, inbox, now, force_bank=False):
             except ValueError:
                 continue
             if nr <= cutoff:
-                due.append((meta.get("last_result") != "fail", nr, rel, p))
-    due.sort(key=lambda d: d[:3])            # fails first, then oldest due
+                due.append((int0(meta.get("bank_set")) == 0, meta.get("last_result") != "fail", nr, rel, p))
+    due.sort(key=lambda d: d[:4])            # reviews before brand-new topics; fails first, then oldest due
+    load_f = state / "loaded.json"           # per-day counts: syncing after every session can't load a second batch
+    lo = json.loads(load_f.read_text()) if load_f.exists() else {}
+    if lo.get("day") != cutoff.isoformat():
+        lo = {"day": cutoff.isoformat(), "total": 0, "new": 0}
+    room = 0 if queued else cap - lo["total"]   # nothing new while questions are still waiting
     order = max([int0(q["data"].get("order")) for q in qs.values() if q["data"].get("page") in queued] or [-1]) + 1
     loaded, needs_bank, refresh = [], [], []
-    for _, _, rel, p in due[:max(0, cap - len(queued))]:
+    for is_new, _, _, rel, p in due:
+        if len(loaded) >= room:
+            break
+        if is_new and lo["new"] >= MAX_NEW:
+            continue
         text, meta = read_page(p)
         sets = bank(text)
         if not sets:
@@ -306,12 +355,16 @@ def run(vault, inbox, now, force_bank=False):
         topic, stage = title(text, p.stem), int0(meta.get("stage"))
         slug = re.sub(r"[^a-z0-9]+", "-", p.stem.lower()).strip("-")
         for k, q in enumerate(cur, 1):
-            doc = {**bare(q), "topic": topic, "page": rel, "stage": stage, "order": order, "due": meta.get("next_review", "")}
+            doc = {**bare(q), "topic": topic, "page": rel, "stage": stage, "order": order, "due": meta.get("next_review", ""),
+                   **({"relearn": True} if int0(meta.get("miss_run")) >= 2 else {})}   # stuck twice: the quiz shows the lesson first
             order += 1
             writes.append({"op": "set", "collection": "questions", "doc_id": f"{slug}-{now:%Y%m%d%H}-{k}", "data": doc})
         sets[n % len(sets)] = [rotate(q) for q in cur]            # served once: next time this set shows its rewrites
         p.write_text(set_fm(set_bank(text, sets), bank_set=n + 1))
         loaded.append(topic)
+        lo["new"] += is_new
+    lo["total"] += len(loaded)
+    load_f.write_text(json.dumps(lo))
 
     refresh += [p for p in dict.fromkeys(flagged) if p not in refresh]   # flagged questions get fixed at "refresh banks"
 
@@ -321,6 +374,13 @@ def run(vault, inbox, now, force_bank=False):
     if "mastery" in st:
         w["if_version"] = st["mastery"]["version"]
     writes.append(w)
+
+    labs = labs_of(vault)                    # Build tab's lab list: sent only when it changed
+    if labs != ((st.get("labs") or {}).get("data") or {}).get("labs", []):
+        lw = {"op": "set", "collection": "stats", "doc_id": "labs", "data": {"labs": labs}}
+        if "labs" in st:
+            lw["if_version"] = st["labs"]["version"]
+        writes.append(lw)
 
     # Question banks for Practice (built after loading, so they show the next versions): only changed shards are sent.
     shards, short = shards_of(vault)
@@ -398,6 +458,55 @@ def check_banks(vault):
     return bad
 
 
+OWN = re.compile(r"(?i)\byour\b[^.?!]*\b(\w+\.(py|ya?ml|json|tf|sh|toml)|workflow|ci|pipeline|dag|repo|dockerfile|code|script|config)\b")
+
+
+def lint_q(v):
+    """Quality problems in one question that a machine can spot. [] = fine. Rules: the write-quiz-questions skill."""
+    pr, o, c, w = (v.get("prompt") or "").strip(), [str(x) for x in v.get("options") or []], v.get("correct"), []
+    if not pr.rstrip("'\"’” )").endswith("?"):
+        w.append("prompt must be one clear question ending in ?")
+    if re.match(r"(?i)(explain|describe|teach)\b", pr):
+        w.append("open 'Explain...' prompt: ask which explanation or correction is right")
+    if OWN.search(pr) and not v.get("code") and "`" not in pr:
+        w.append("asks about the learner's own code/setup with no code snippet")
+    if re.search(r"\b(NOT|EXCEPT)\b", pr) or re.search(r"(?i)which of the following", pr):
+        w.append("negative or 'which of the following' phrasing")
+    if len(pr) > 200:
+        w.append("prompt over 200 chars")
+    if len(o) == 4:
+        n = [len(x) for x in o]
+        if len({x.strip().lower() for x in o}) < 4:
+            w.append("duplicate options")
+        if any(re.search(r"(?i)\b(all|none|both) of (the above|these)\b", x) for x in o):
+            w.append("'all/none of the above' option")
+        if max(n) > 90:
+            w.append("option over 90 chars")
+        if isinstance(c, int) and 0 <= c < 4 and n[c] > 1.25 * max(x for i, x in enumerate(n) if i != c):
+            w.append("correct option is clearly the longest")
+        elif max(n) > 30 and max(n) > 2.5 * min(n):
+            w.append("options differ a lot in length")
+    return w
+
+
+def lint_banks(vault):
+    """python3 sync.py <vault> --lint -> every current question and rewrite with quality problems. Warnings, not errors."""
+    out = []
+    for folder in ("wiki", "builds"):
+        for p in sorted((Path(vault) / folder).rglob("*.md")):
+            text, meta = read_page(p)
+            if meta.get("review") != "true":
+                continue
+            rel = p.relative_to(vault).as_posix()
+            for i, st in enumerate(bank(text), 1):
+                for j, q in enumerate(st, 1):
+                    for k, v in enumerate([q, *(q.get("alts") or [])]):
+                        w = lint_q(v)
+                        if w:
+                            out.append({"at": f"{rel} set {i} q{j}" + (f" rewrite {k}" if k else ""), "prompt": v.get("prompt", ""), "problems": w})
+    return out
+
+
 def london_now():
     try:
         from zoneinfo import ZoneInfo
@@ -431,6 +540,15 @@ if __name__ == "__main__":
         problems = check_banks(args[0])
         print(json.dumps(problems, indent=1))
         sys.exit(1 if problems else 0)
+    if "--labs" in args:                     # the Build tab's lab list as the quiz page stores it (stats/labs)
+        print(json.dumps({"labs": labs_of(Path(args[0]))}, ensure_ascii=False))
+        sys.exit(0)
+    if "--needs" in args:                    # pages short of rewrites, for the weekly top-up
+        print(json.dumps(shards_of(Path(args[0]))[1]))
+        sys.exit(0)
+    if "--lint" in args:
+        print(json.dumps(lint_banks(args[0]), ensure_ascii=False, indent=1))
+        sys.exit(0)
     if "--export-bank" in args:
         print(json.dumps(export_bank(args[0], args[args.index("--export-bank") + 1])))
         sys.exit(0)

@@ -10,7 +10,7 @@ from sync import next_stage, result, run
 assert result(["correct", "correct", "partial"]) == "pass"      # .83
 assert result(["correct", "partial", "wrong"]) == "shaky"       # .5
 assert result(["partial", "wrong", "wrong"]) == "fail"          # .17
-assert next_stage(6, "pass") == 6 and next_stage(3, "shaky") == 3 and next_stage(4, "fail") == 0
+assert next_stage(6, "pass") == 6 and next_stage(3, "shaky") == 3 and next_stage(4, "fail") == 2 and next_stage(1, "fail") == 0   # fail: back two steps
 
 SETS = [[{"kind": "recall", "prompt": f"q{s}{k}", "answer": "a", "points": ["p"]} for k in range(3)] for s in range(3)]
 PAGE = """---
@@ -120,7 +120,7 @@ with tempfile.TemporaryDirectory() as d:
     assert "wiki/tech/Topic A.md" in out7["refresh_bank"] and any("Flagged questions: 2" in s for s in out7["summary"])
     assert sum(w["op"] == "delete" and w["collection"] == "answers" for b in out7["batches"] for w in b) == 2
 
-# v1.18: flagged ("skip") answers aren't scored; all flagged -> same step, back tomorrow; "Learn first" -> day 1;
+# v1.18: flagged ("skip") answers aren't scored; all flagged -> same step, back tomorrow; "Learn first" -> counts as a fail (back two steps);
 # every question keeps 2 unused rewrites ("alts"): using a version (quiz load, practice/learn answer) rotates in the next one.
 from sync import result
 assert result(["correct", "skip", "correct"]) == "pass" and result(["skip", "skip"]) == "flagged"
@@ -149,7 +149,7 @@ with tempfile.TemporaryDirectory() as d:
     B, C, D, E = [(v / f"wiki/tech/{n}.md").read_text() for n in "BCDE"]
     assert "stage: 4" in B and "next_review: 2026-11-20" in B, B[:200]                       # skip ignored -> pass
     assert "stage: 3" in C and "next_review: 2026-10-21" in C and "last_result: pass" in C    # all flagged -> same step, tomorrow
-    assert "stage: 0" in D and "next_review: 2026-10-21" in D and any("learned first" in x for x in out["summary"])
+    assert "stage: 1" in D and "next_review: 2026-10-23" in D and any("learned first" in x for x in out["summary"])
     eb = json.loads(re.search(r"```json\n(.*?)\n```", E, re.S).group(1))
     served = [w["data"]["prompt"] for b in out["batches"] for w in b if w["collection"] == "questions" and w["op"] == "set"]
     assert served[:3] == ["E00", "E01", "E02"], served                                          # originals served first
@@ -172,6 +172,19 @@ with tempfile.TemporaryDirectory() as d:
     docs = [w["data"] for b in out["batches"] for w in b if w["collection"] == "questions" and w["op"] == "set"]
     assert len({d["page"] for d in docs}) == 3 and all(d["due"] for d in docs), docs[:2]
 
+    # One batch a day: a second sync for the same day loads nothing more
+    again = run(v, {"questions": [], "answers": [], "stats": [{"id": "prefs", "version": 1, "data": {"max_topics": 3}}]}, dt.datetime(2026, 10, 21, 21, 30))
+    assert not [w for b in again["batches"] for w in b if w["collection"] == "questions"]
+    # Brand-new topics (bank_set 0) are capped at MAX_NEW a day and come after reviews: 3 reviews + 2 new, not 8
+    out = run(v, {"questions": [], "answers": [], "stats": [{"id": "prefs", "version": 1, "data": {"max_topics": 8}}]}, dt.datetime(2026, 10, 23, 9, 0))
+    pages = list(dict.fromkeys(w["data"]["page"] for b in out["batches"] for w in b if w["collection"] == "questions" and w["op"] == "set"))
+    fresh = [p for p in pages if "bank_set: 1\n" in (v / p).read_text()]
+    assert len(pages) == 5 and len(fresh) == 2 and pages[-2:] == fresh, pages
+    # No piling: while any question is still unanswered, nothing new loads
+    wait = {"questions": [{"id": "T5-0", "version": 1, "data": {"page": "wiki/tech/T5.md", "topic": "T5", "order": 0}}], "answers": []}
+    out = run(v, wait, dt.datetime(2026, 10, 25, 9, 0))
+    assert not [w for b in out["batches"] for w in b if w["collection"] == "questions"] and out["waiting_topics"] == 1
+
     # Build it: a page's `## Build it` JSON ships with its bank entry and is checked by --check
     from sync import shards_of, build_problems
     good = {"order": {"title": "T", "prompt": "P", "lines": [{"id": f"l{i}", "t": f"line {i}", "why": "w", "after": [f"l{i-1}"] if i else []} for i in range(4)],
@@ -184,5 +197,55 @@ with tempfile.TemporaryDirectory() as d:
     sh, _ = shards_of(v)
     assert [e for s in sh for e in s if e["p"] == "wiki/tech/T0.md"][0]["b"]["order"]["title"] == "T"
     assert check_banks(v) == [x for x in check_banks(v) if "E.md" in x]                           # only the earlier broken page
+
+# Shaky loop: two results in a row that aren't a clean pass -> the next load is marked relearn (the quiz shows the lesson first)
+with tempfile.TemporaryDirectory() as d:
+    v = Path(d); (v / "wiki/tech").mkdir(parents=True); (v / "log.md").write_text("# Log\n")
+    mk(v, "S", 0, due="2026-10-20"); f = v / "wiki/tech/S.md"
+    f.write_text(f.read_text().replace("bank_set: 0", "bank_set: 1\nmiss_run: 1"))
+    out = run(v, {"questions": [qrow("S", k) for k in range(3)], "answers": [arow("S", k, "partial") for k in range(3)]}, dt.datetime(2026, 10, 20, 21, 0))
+    assert "miss_run: 2" in f.read_text(), f.read_text()[:200]
+    docs = [w["data"] for b in out["batches"] for w in b if w["collection"] == "questions" and w["op"] == "set"]
+    assert docs and all(x.get("relearn") for x in docs), docs[:1]
+    run(v, {"questions": [qrow("S", k + 5) for k in range(3)], "answers": [arow("S", k + 5, "correct") for k in range(3)]}, dt.datetime(2026, 10, 22, 21, 0))
+    assert "miss_run: 0" in f.read_text()
+
+# Packs: a page's `pack:` field travels with its bank entry (no field = no key, the app files it under My notes)
+with tempfile.TemporaryDirectory() as d:
+    v = Path(d); (v / "wiki/tech").mkdir(parents=True)
+    mk(v, "P1", 0); mk(v, "P2", 0)
+    f = v / "wiki/tech/P1.md"; f.write_text(f.read_text().replace("bank_set: 0", "bank_set: 0\npack: Docker, Kubernetes"))
+    from sync import shards_of as _so
+    es = {e["t"]: e for sh in _so(v)[0] for e in sh}
+    assert es["P1"]["k"] == ["Docker", "Kubernetes"] and "k" not in es["P2"], es["P1"].get("k")
+
+# Labs: builds/ pages with `rung:` ship to the Build tab as stats/labs; a "lab" answer from the phone marks the page done
+with tempfile.TemporaryDirectory() as d:
+    v = Path(d); (v / "wiki/tech").mkdir(parents=True); (v / "builds").mkdir(); (v / "log.md").write_text("# Log\n")
+    lab = v / "builds/Lab 1.md"
+    lab.write_text("---\ntags: [build, lab]\nstatus: planned\nrung: 1\ntime_box: 45 min\npack: Docker\n---\n\n# Lab 1\n\nThe goal.\n\nPart of [[Ladder]].\n\n## Steps\n1. Do `x`.\n2. See [[Topic A|the topic]].\n\n## Log\nprivate\n")
+    (v / "builds/Ladder.md").write_text("---\ntags: [build]\n---\n\n# Ladder\n")
+    out = run(v, {"questions": [], "answers": []}, dt.datetime(2026, 11, 12, 21, 0))
+    lw = [w for b in out["batches"] for w in b if w["collection"] == "stats" and w["doc_id"] == "labs"][0]
+    L1 = lw["data"]["labs"]
+    assert len(L1) == 1 and L1[0]["t"] == "Lab 1" and L1[0]["k"] == ["Docker"] and L1[0]["goal"] == "The goal." and L1[0]["n"] == "Part of Ladder.", L1
+    assert [x["h"] for x in L1[0]["s"]] == ["Steps"] and "`x`" in L1[0]["s"][0]["b"] and "the topic" in L1[0]["s"][0]["b"] and "if_version" not in lw
+    same = run(v, {"questions": [], "answers": [], "stats": [{"id": "labs", "version": 3, "data": lw["data"]}]}, dt.datetime(2026, 11, 12, 21, 5))
+    assert not [w for b in same["batches"] for w in b if w.get("doc_id") == "labs"]                    # unchanged -> not resent
+    fin = run(v, {"questions": [], "answers": [{"id": "lab-1", "version": 1, "data": {"mode": "lab", "page": "builds/Lab 1.md"}}],
+                  "stats": [{"id": "labs", "version": 3, "data": lw["data"]}]}, dt.datetime(2026, 11, 13, 21, 0))
+    w2 = [w for b in fin["batches"] for w in b]
+    assert "status: done" in lab.read_text() and any(w["op"] == "delete" and w["doc_id"] == "lab-1" for w in w2)
+    assert [w for w in w2 if w.get("doc_id") == "labs"][0]["data"]["labs"][0]["status"] == "done" and any("Lab done" in x for x in fin["summary"])
+
+# --lint: machine-checkable question quality (warnings only)
+from sync import lint_q
+ok_q = {"prompt": "A junior says 'green panels mean the model is fine'. What's the best correction?", "options": ["Green can hide wrong predictions", "Right, if 5xx stays under 1%", "Check p99 instead of p95", "Right, but watch memory too"], "correct": 0}
+assert lint_q(ok_q) == [], lint_q(ok_q)
+assert any("Explain" in w for w in lint_q({**ok_q, "prompt": "Explain an MLflow run like you're teaching a junior."}))
+assert any("code snippet" in w for w in lint_q({**ok_q, "prompt": "Why does your CI also run on a weekly schedule?"}))
+assert lint_q({**ok_q, "prompt": "Why does your CI also run weekly?", "code": "on:\n  schedule:"}) == []
+assert any("longest" in w for w in lint_q({**ok_q, "options": ["Green can hide wrong predictions, so also watch drift and quality", "Right", "Check p99", "Watch memory"]}))
+assert any("ending in ?" in w for w in lint_q({**ok_q, "prompt": "Data drift means\u2026"}))
 
 print("ok")

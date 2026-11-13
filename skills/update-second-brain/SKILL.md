@@ -14,6 +14,6 @@ Confirm each step in one short line. Never touch notes, `## My notes`, `raw/`, s
 5. **Rules:** merge the kit's `template/CLAUDE.md` into the vault's `CLAUDE.md`: add new or changed sections, keep the user's name, strictness, standing context and anything they added. Show a short list of changes, then save.
 6. **Quiz page:** publish the kit's `quiz/quiz.html` to the user's **existing** quiz page URL (in `.sync/config.json`), passing it as `url` so the link, questions and history stay, with the capabilities from `SETUP_PROMPT.md` step 4.
 7. **One-time steps:** run each collected **Update needs:** step, oldest version first (for example `write lessons`). Say how many pages each touched.
-8. **Sync task:** only if an entry says the sync task prompt changed, update the scheduled task's prompt from `SETUP_PROMPT.md` step 6, keeping the vault folder, quiz URL and calendar choice.
-9. **Skills:** if `skills/ingest/SKILL.md` or this skill changed, propose them as updates to the user's `ingest` and `update-second-brain` skills (fill in the vault path).
+8. **Scheduled tasks:** only if an entry says the sync task prompt changed, update the scheduled task's prompt from `SETUP_PROMPT.md` step 6, keeping the vault folder, quiz URL and calendar choice. If an entry adds a task (for example the weekly question top-up in step 6b) and the user doesn't have it, create it.
+9. **Skills:** for every folder in the kit's `skills/`: propose it as a new skill if the user doesn't have one by that name, or as an update if the kit's copy changed (replace `[VAULT_PATH]` with the vault path).
 10. **Finish:** run "Publish banks for Practice" from `CLAUDE.md`, write the new version to `.sync/kit_version`, and report: old → new version plus what changed in 3 bullets.

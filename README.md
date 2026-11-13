@@ -16,27 +16,29 @@ Built on [Hussein Malki's obsidian-llm-brain](https://github.com/Husseinmalki/ob
 > **Claude, reading this for a user:** to install, follow [`SETUP_PROMPT.md`](SETUP_PROMPT.md) step by step. If they already have a Second Brain vault (a `CLAUDE.md` with this schema or a `.sync/kit_version`), follow [`skills/update-second-brain/SKILL.md`](skills/update-second-brain/SKILL.md) instead.
 
 **What you get**
+- **Home:** a Today tile (everything due, from every pack) and a tile per **pack**. A pack is a course or subject; tap one and Quiz, Learn, Practice and Build show just that pack.
 - **Quiz:** tomorrow's due topics on your phone or Mac, multiple choice (or written answers marked by Claude), with code snippets where a question needs them. Skip, learn first or flag a question. **Never the same question twice:** each review asks a fresh rewrite. Works offline.
-- **Learn:** your weak topics as step-by-step lessons (the problem, the idea, your own code line by line, best practice, your past mistakes), a drag-and-drop **Build it** exercise, then 2 right in a row to clear.
+- **Learn:** every topic, pack by pack, as a step-by-step lesson (the problem, the idea, your own code line by line, best practice, your past mistakes), then 2 right in a row to clear.
 - **Practice:** endless questions from your whole bank, XP, combos and a timed hard mode.
+- **Build:** hands-on, per topic: **Build it** (drag a real solution's lines into order, traps left out), **Do or don't**, the best-practice notes as **Tips**, and **labs** (real sessions on your own machine, in order).
 - **Progress:** streak, levels, a GitHub-style heatmap, and every topic by ladder step (filter by 1d, 3d, 7d …).
 - **The cat:** sits under the title showing your status and reacts to every answer (WOW! / oops / x3 combo! / LVL UP!).
 - **Settings:** 12 themes (default: matches your phone's light or dark mode) and your own icon.
-- **On your Mac:** `/ingest` after you learn something, `import` for older material, a nightly sync that moves topics up the ladder, calendar reminders, and `/update-second-brain` for new versions.
+- **On your Mac:** `/ingest` after you learn something, `import` for older material, a sync every night and after each finished session that moves topics up the ladder, calendar reminders, and `/update-second-brain` for new versions.
 
 <p align="center">
-  <img src="docs/screenshots/0-today.png" width="23%" alt="Today's topics: step badges, a late badge, step filter and Start all">
+  <img src="docs/screenshots/0-today.png" width="23%" alt="Home: a Today tile and a tile per pack, each with what is due">
   <img src="docs/screenshots/1-question.png" width="23%" alt="A quiz question with four tap answers, the review ladder, and I don't know / Skip / Learn first">
   <img src="docs/screenshots/3-written.png" width="23%" alt="Written answer marked by Claude: what you got, what's missing, model answer and a tip">
-  <img src="docs/screenshots/9-build.png" width="23%" alt="Build it: drag Dockerfile lines into best-practice order, traps left out">
+  <img src="docs/screenshots/9-build.png" width="23%" alt="Build tab: labs in order, then Build and Tips for every topic">
 </p>
 <p align="center">
-  <img src="docs/screenshots/8-learn.png" width="23%" alt="Learn tab: a step-by-step lesson with real code, 4 of 7">
+  <img src="docs/screenshots/8-learn.png" width="23%" alt="Learn tab: a step-by-step lesson with real code, 3 of 5">
   <img src="docs/screenshots/5-progress.png" width="23%" alt="Progress tab: streak, level and XP, activity heatmap, every topic by ladder step with a step filter">
   <img src="docs/screenshots/7-practice.png" width="23%" alt="Practice tab: one question at a time with level, XP, combo and hard mode">
   <img src="docs/screenshots/6-settings.png" width="23%" alt="Settings tab: theme picker with Match phone (default), Dracula, GitHub, Tokyo Night, Catppuccin, Nord and more">
 </p>
-<p align="center"><sub>Quiz: today's topics · a question · written answer marked by Claude · Build it<br>Learn lesson · Progress · Practice (hard mode) · Settings (example data)</sub></p>
+<p align="center"><sub>Home · a question · written answer marked by Claude · Build tab<br>Learn lesson · Progress · Practice (hard mode) · Settings (example data)</sub></p>
 
 ---
 
@@ -58,7 +60,7 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
                      saves weak spots + log in Obsidian
 ```
 
-**The ladder.** Pass → next step. Shaky → same step again. Fail → back to day 1.
+**The ladder.** Pass → next step. Shaky → same step again. Fail → back two steps. Two rounds in a row without a clean pass, and the quiz shows the lesson before the questions.
 
 | Step | 0 | 1 | 2 | 3 | 4 | 5 | 6 |
 |---|---|---|---|---|---|---|---|
@@ -68,7 +70,7 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 - You forget most new things within a day unless you recall them, so the first review is tomorrow.
 - Recalling something just as it starts to fade makes it last longer, so each gap can roughly double: 1 → 3 → 7 → 14 → 31 days.
 - Answering a question beats re-reading, so every review is a quiz.
-- 60 and 120 days keep mastered topics fresh. Fail one and it restarts at day 1, because it hadn't really stuck.
+- 60 and 120 days keep mastered topics fresh. Fail one and it drops back two steps, because it hadn't fully stuck.
 - Practice and Learn never move the ladder: reviewing before you start to forget does less, and it would make your schedule look better than your memory is.
 
 ---
@@ -79,7 +81,7 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 
 1. Open a new Cowork task linked to your computer.
 2. Say *"Set up https://github.com/smir22/purrsist for me"* (or paste the prompt from [`SETUP_PROMPT.md`](SETUP_PROMPT.md), which is what Claude follows).
-3. Answer its questions. It installs Obsidian if needed, builds your vault, publishes your quiz page, schedules the sync and installs `/ingest` and `/update-second-brain`.
+3. Answer its questions. It installs Obsidian if needed, builds your vault, publishes your quiz page, schedules the nightly sync and the weekly question top-up, and installs the skills (`/ingest`, `/update-second-brain`, and the question and build writers).
 
 ---
 
@@ -96,29 +98,41 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 - **Notes, lesson + questions:** it writes the topic page, a step-by-step lesson for the Learn tab, your weak spots and a question bank (the first questions target what's still shaky).
 - Your first review is tomorrow.
 
+### Home and packs (phone or Mac)
+- The page opens on **Home**: **Today** is everything due, from every pack. Under it, one tile per pack with its topic count, how far its topics have climbed the ladder, and what's due.
+- A **pack** is a course or subject. Give a topic page `pack: <name>` in its frontmatter (ingest and import ask); pages without one are in **My notes**. A topic can sit in several packs (`pack: A, B`) and is still one page with one schedule.
+- Tap a pack and Quiz, Learn, Practice and Build show only that pack. The pack's name shows under the header; **Show all packs** clears it.
+
 ### Quiz (phone or Mac)
 - **Open it:** tap the link in the 08:00 calendar event, or the pinned page in the Claude app sidebar. Tip: open it in Safari (signed in to claude.ai) → Share → **Add to Home Screen** for one-tap access, like an app.
 - **Today's topics:** the quiz opens on a list of today's topics with their step (1d, 3d…) and an "Nd late" badge. Tap one to do just its 3 questions, filter by step, or **Start all**.
 - **Tap answers (default):** every question is multiple choice. No typing, works one-handed.
 - **Skip:** sends the question to the back of today's queue (once per question).
-- **Learn first:** read the topic's lesson, then answer. That topic comes back tomorrow, because it wasn't recall from memory.
-- **Never the same question twice:** every question has 2 ready-written rewrites (same idea, new scenario and options). Once you've seen a version in Quiz, Practice or Learn, the next one takes its place and the nightly sync writes a new rewrite.
+- **Learn first:** read the topic's lesson, then answer. That counts as a fail (back two steps), because it wasn't recall from memory.
+- **Never the same question twice:** every question has 2 ready-written rewrites (same idea, new scenario and options). Once you've seen a version in Quiz, Practice or Learn, the next one takes its place, and a weekly task writes new rewrites.
 - **Write answers (optional):** switch at the top. Why / apply / teach questions become a text box: type, or tap the keyboard mic and talk. Claude marks it and shows what you got, what's missing, the model answer and a tip.
 - **First written answer:** the page asks permission to use Claude for marking. Allow it (it uses your normal Claude usage; multiple choice uses none).
 - **Strictness:** Lenient / Balanced / Strict (shows in Write mode).
-- **Done screen:** shows where each topic moves on the ladder.
+- **Done screen:** shows where each topic moves on the ladder, and starts a sync by itself (your Mac needs to be awake; otherwise the nightly run picks it up).
+- **Lesson first:** a topic with two rounds in a row without a clean pass shows its lesson before its questions.
 - Nothing to do? It says so. New questions load at the next sync.
 - **⚑ Flag** a bad question: tick one or more reasons (wrong answer, question unclear, answers unclear, needs code, too easy), then Send. It's skipped and not scored, logged on the topic's page, and fixed next time you say `refresh banks`.
 - **No signal?** Keep going. Answers are saved on your phone and sent when signal returns. Open the quiz once before you go underground.
 
 ### Learn tab (phone)
-- Lists your weak topics (stage 0–1, missed questions, logged weak spots), most urgent first.
+- Opens on your packs. Tap one for all its lessons, weakest first.
 - Tap one for a **step-by-step lesson** (4–7 short screens): the problem it solves, the idea in plain words, your own code explained line by line, the gotchas you've hit before, and a recap. Claude writes it once per topic into the page's `## Lesson`; reading it costs no tokens.
 - **Build it** (after the lesson): drag the lines of a real solution (a Dockerfile, a probe, a CI job…) into best-practice order and leave the trap lines out, then sort 8 practices into **Do / Don't**. Each tile shows why when you check. Drag with a mouse, or hold a tile then drag with your finger; tapping also moves it.
 - **Test me** → questions on that topic. Get **2 right in a row** to clear it; a miss shows why and sends you back to the lesson.
 - Missing a question in Quiz or Practice shows a **Learn this** button that opens that topic's lesson.
 - Learn never moves the ladder (only Quiz does); misses still become weak spots.
 - Older vault without lessons? Say **write lessons** in a vault session.
+
+### Build tab (phone)
+- Organised by pack, like Learn.
+- **Labs** come first: real hands-on sessions on your own machine, in order, each with a goal, steps, a done-check, something to break on purpose and an explain-back. Say **plan labs for <subject>** in a vault session to get a ladder. **I finished this lab** ticks it off; then tell Claude "build done" for the explain-back.
+- Every topic has **Build** (the Build it exercise, then Do or don't) and **Tips** (its best-practice notes in a sheet you can dismiss). Built topics get a tick.
+- Misses become weak spots; the ladder doesn't move.
 
 ### Practice tab (phone)
 - **One question at a time** from your whole bank, as many as you like, with a smooth swap to the next. Weaker topics come up more often; filter to shaky topics or one topic.
@@ -131,7 +145,8 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 - Counts for your streak; misses are saved as weak spots. It never moves topics on the ladder, so your review schedule stays honest.
 - Pick **your icon** in Settings; it shows next to your level.
 
-### Progress tab (phone)
+### Progress (phone)
+- Open it with the chart button at the top right; Settings is the gear next to it.
 - **Streak:** days in a row you answered (or opened the quiz when nothing was due). One missed day a week is covered by an automatic freeze.
 - **Level & XP:** correct 10, partly 5, wrong 2 (for showing up), multiplied by the topic's ladder step, so remembering something after 31 days is worth more than after 1. Reviews done on their due day get +20%; each day late takes 10% off (never below half). XP is never taken away.
 - **Activity heatmap:** last 20 weeks, GitHub style.
@@ -140,7 +155,7 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 - **Sync now:** saves your answers into the vault straight away instead of waiting for the schedule (your Mac needs to be awake). The first tap asks permission to use the Claude Code Remote connector.
 
 ### Settings tab (phone)
-- **Daily quiz:** 3, 5 (default) or 8 topics a night, 3 questions each. Failed and overdue topics come first; the rest wait for the next night.
+- **Daily quiz:** 3, 5 (default) or 8 topics a day, 3 questions each. Failed and overdue topics come first. One batch a day, at most 2 brand-new topics a day, and nothing new loads until you finish what's waiting.
 - **Theme:** Match phone (default: GitHub Light by day, GitHub Dark at night), Dracula, Dracula Light, Light, Dark, One Dark Pro, GitHub Dark/Light, Tokyo Night, Catppuccin Mocha, Nord, Solarized Light. Saved per device.
 
 ### Notes (Mac, Obsidian)
@@ -155,24 +170,28 @@ next sync (auto) ──► scores each topic, moves it up/down the ladder,
 | `import <folder or project>` | Bulk-add things you already learned (course repo, notes). Claude proposes topics, you rate them know / shaky / skip, new ones roll in 3 a day |
 | `process inbox` | Same, for files you dropped into `raw/inbox/` |
 | `write lessons` | Writes step-by-step Learn lessons for any topic that doesn't have one |
-| `write rewrites` | Tops up every question to 2 ready rewrites (the nightly sync does this automatically, 10 a night) |
+| `write rewrites` | Tops up every question to 2 ready rewrites (the weekly task does this automatically, 30 a week) |
+| `lint questions` | Lists questions with detectable problems (unclear prompt, give-away options, missing code) and fixes them |
 | `write build exercises` | Adds a Best practice lesson step and Build it exercises to every topic that doesn't have them |
 | `refresh banks` | Fixes questions you flagged on the phone, and writes fresh questions for topics whose bank is used up |
 | `publish banks for practice` | Sends your lessons and questions to the phone straight away (otherwise the nightly sync does it) |
 | `sync quiz` | Runs the sync now from chat (same as **Sync now** on the phone) |
 | `quiz me` | Quiz in chat instead of the phone |
+| `plan labs for <subject>` | A ladder of hands-on labs in `builds/`; they show up in the Build tab |
 | `plan a build for X` / `build done` | Hands-on lab; at the end you explain your code line by line |
 | `plan week` | Fits reviews and builds around your schedule |
 | `anki export` | Facts (ports, flags, vocab) → file you import into Anki |
 | `lint the wiki` | Monthly tidy: broken links, gaps, contradictions |
 | `/update-second-brain` | Updates to the latest version of this kit, keeping your notes and history |
 
-On the phone: **Quiz · Learn · Practice · Progress** (with **Sync now**) **· Settings**, and **⚑ Flag** on any question.
+On the phone: **Home · Quiz · Learn · Practice · Build** in the bottom bar, **Progress** (with **Sync now**) and **Settings** at the top right, and **⚑ Flag** on any question.
 
 ### Sync
 - Runs once a night by itself (default 20:52): saves your quiz results into the vault, loads tomorrow's questions, and adds a calendar reminder naming tomorrow's topics.
 - All the logic is in `.sync/sync.py` (no AI tokens); the scheduled task only moves data. Once a run has worked, switch the task's model to **Haiku** in its settings to keep it cheap.
-- Want it sooner? Tap **Sync now** on the Progress tab.
+- It also starts by itself when you finish a session. A second sync on the same day never loads a second batch.
+- **Question rewrites** are written by a separate weekly task (default Sunday evening, at most 30 a run), not by the nightly sync, so the nightly run stays cheap.
+- Want it sooner? Tap **Sync now** on the Progress screen.
 - Your Mac needs to be on and awake at sync time. If it's asleep, tap Sync now later or the next night's run catches up. Nothing is lost.
 
 ---

@@ -57,6 +57,8 @@ stage: 0
 next_review: YYYY-MM-DD
 last_result: pass|shaky|fail
 bank_set: 0              # next question-bank set (sync.py manages)
+miss_run: 0              # results in a row that weren't a clean pass (sync.py manages; 2+ → lesson first)
+pack: Docker             # optional: the course/pack this page belongs to (a home tile in the quiz page). Several: `pack: A, B`. No field = My notes. One topic = ONE page, even when two packs cover it
 ---
 
 # Title
@@ -92,7 +94,7 @@ One-line purpose.
 After each page is quizzed:
 - **pass** → stage +1 (cap 6), `next_review = today + wait[new stage]`
 - **shaky** → same stage, `next_review = today + wait[stage]`
-- **fail** → stage 0, `next_review = today + 1`
+- **fail** → back two stages (min 0), `next_review = today + wait[new stage]`
 - Always set `last_result`, `updated`.
 
 ## 6. Operations
@@ -102,10 +104,10 @@ After each page is quizzed:
 2. **Blank-page dump first:** ask [Your name] to dump everything they remember (typed or voice) BEFORE showing takeaways. Compare with the source: what they missed or got wrong = first weak spots.
 3. Give key takeaways in chat (bullets).
 4. Write `wiki/sources/` summary + concept pages (`review: true, stage: 0, next_review: tomorrow, bank_set: 0`).
-5. **Question bank** per concept page: 3 sets × 3 questions, JSON under `## Question bank`:
+5. **Question bank** per concept page: 3 sets × 3 questions, JSON under `## Question bank`. Quality rules: the `write-quiz-questions` skill (load it when available; it wins over the bullets below). Afterwards `python3 .sync/sync.py . --lint` must list nothing for the questions you wrote:
    - `recall`: key fact / definition
    - `apply`: realistic scenario (prod incident / interview / design choice)
-   - `teach`: Feynman explain-back — "Explain X to a junior…" (as MCQ: "Which explanation is right?")
+   - `teach`: a junior's misconception to correct ("A junior says '…'. What's the best correction?") or "Which explanation of X is right for a junior?". Never an open "Explain X…" prompt
    - EVERY question has `options` (4, plausible distractors, varied correct position) + `correct` (index): the quiz is tap-only by default
    - Distractors: near-misses / common misconceptions that differ from the right answer in one key detail; same length and shape as the correct option (it must not be the longest — keep options short, detail goes in `answer`); none arguably correct
    - Never ask about code the learner can't see ("in your serve.py…"). Either add a `code` field with the snippet (≤10 lines, ≤40 chars wide so it fits a phone) or make the question general. No trivia (ports, file paths, README steps)
@@ -128,7 +130,7 @@ After each page is quizzed:
 4. Grade each answer briefly: what was right, what was missing, the correct answer. Page result = pass / shaky / fail.
 5. Update frontmatter per §5, update `## Weak spots`, append one `log.md` entry for the session with scores.
 
-### sync  (scheduled nightly, "Sync now" on the quiz page, or "sync quiz")
+### sync  (scheduled nightly, automatically when a quiz session is finished, "Sync now" on the quiz page, or "sync quiz")
 Phone quiz page: [QUIZ_URL] (db via the ArtifactData tool).
 All logic lives in `.sync/sync.py` (scoring, ladder, weak spots, log, due topics, bank rotation, question rewrites swapping in after each use, calendar, mastery stats for the Progress tab, practice answers → weak spots, changed question-bank shards for the Practice tab). The model only moves JSON:
 1. ArtifactData `list` on `questions`, `answers` and `stats`; list `bank` with `out_dir` (ids + versions only). If both empty AND nothing is due (`grep -l "^next_review:" -r wiki builds` dates ≤ today) → reply "Nothing due" and stop.
@@ -137,8 +139,8 @@ All logic lives in `.sync/sync.py` (scoring, ladder, weak spots, log, due topics
 4. Each entry in `batches` → one ArtifactData `batch` call, passed as-is.
 5. `calendar` not null → Google Calendar create_event (Europe/London) with its title/date/start/end/description.
 6. Reply with `summary` bullets. `needs_bank` / `refresh_bank` pages → mention them; Claude writes banks next chat session (not during sync).
-7. `needs_variants` not empty → write rewrites (see **rewrites**), max 10 per run, then `python3 .sync/sync.py . --check` must print `[]`.
-Scoring (in sync.py): correct 1, partial 0.5, wrong 0 → avg ≥0.8 pass, ≥0.5 shaky, else fail. Flagged questions (`skip`) aren't scored; all flagged → same step, back tomorrow. A topic answered after **Learn first** goes back to day 1. Self-check: `python3 .sync/test_sync.py`.
+7. `needs_variants` not empty → report how many pages it lists. The nightly sync never writes rewrites: the weekly run (Sundays) does, or say "write rewrites".
+Scoring (in sync.py): correct 1, partial 0.5, wrong 0 → avg ≥0.8 pass, ≥0.5 shaky, else fail. Flagged questions (`skip`) aren't scored; all flagged → same step, back tomorrow. A topic answered after **Learn first** counts as a fail (back two stages). Loading (in sync.py): one batch per day up to the Settings cap (`.sync/loaded.json` keeps the day's count), nothing new loads while any question is unanswered, reviews come before brand-new topics (`bank_set: 0`), and at most `MAX_NEW` = 2 brand-new topics start per day. Self-check: `python3 .sync/test_sync.py`.
 
 ### import  ("import <folder/project/notes>", "process inbox", or bulk-adding things already learned)
 For material learned before the vault existed (course notes, a project repo, old chats) or files dropped in `raw/inbox/`.
@@ -160,7 +162,7 @@ The Learn tab teaches weak topics from the page's `## Lesson` (placed after the 
 - After writing or changing lessons, publish banks for Practice (lessons travel with the bank; reading them costs no tokens).
 
 ### build it  ("write build exercises", or any `review: true` page without `## Build it`; also part of ingest/import)
-After a lesson, the Learn tab (and every 5th Practice card) shows two drag-and-drop exercises from the page's `## Build it` JSON, placed right after `## Lesson`:
+Quality rules and lab ladders ("plan labs for X"): the `write-build-exercises` skill. After a lesson, the Learn tab (and every 5th Practice card) shows two drag-and-drop exercises from the page's `## Build it` JSON, placed right after `## Lesson`:
 ```json
 {"order": {"title": "...", "prompt": "...", "label": "Dockerfile", "lines": [{"id": "from", "t": "FROM python:3.11-slim", "after": [], "why": "..."}], "traps": [{"id": "latest", "t": "FROM python:latest", "why": "..."}]},
  "sort": {"title": "Do or don't?", "prompt": "...", "items": [{"id": "s1", "t": "...", "do": true, "why": "..."}]}}
@@ -189,6 +191,7 @@ Practical lab sessions — learning by doing.
 2. On "build done": **explain-back** — pick 3 key parts of [Your name]'s code/config and ask them to explain them line by line. Gaps → weak spots on the concept pages.
 3. Record what worked/broke. Each linked concept used successfully counts as a **pass** (§5).
 4. Prefer builds that serve [[Goals]] and produce something CV/portfolio-worthy.
+5. **Labs in the quiz page:** a `builds/` page with `rung: <n>` in its frontmatter (plus `time_box:`, `status: planned`, optional `pack:`) is a lab. The sync sends every lab to the page's Build tab (title, goal, each `## ` section except `## Log`). "I finished this lab" on the phone sets `status: done` at the next sync; the explain-back and concept passes still happen here on "build done".
 
 ### anki  (auto during ingest, or "anki export")
 - Only for atomic facts (vocab, ports, CLI flags). Concepts go to Claude quizzes, not Anki.

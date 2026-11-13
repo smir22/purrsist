@@ -34,9 +34,8 @@ Set up Purrsist (the Second Brain Kit) for me from https://github.com/smir22/pur
 > 3. Run: python3 .sync/sync.py . .sync/inbox.json
 > 4. For each array in the output's "batches": one ArtifactData batch call with those writes, unchanged.
 > 5. If "calendar" is not null: create a Google Calendar event (my time zone) using its title, date, start, end and description.
-> 6. If "needs_variants" is not empty: write new question rewrites into those pages, at most 10 in total, following the **rewrites** rule in the vault's CLAUDE.md (only add to `alts` inside `## Question bank`). Then run `python3 .sync/sync.py . --check`; it must print `[]` (fix anything it lists).
-> 7. If "summary" is empty, nothing was loaded and "waiting_topics" is 0: reply "Nothing due" and stop. Otherwise reply with the summary as short bullets, plus any needs_bank / refresh_bank pages and how many rewrites you wrote.
-> Never run git. Never edit vault files yourself except the rewrites in step 6 — sync.py does all other vault changes. If a step fails, report the error in one line and stop.
+> 6. If "summary" is empty, nothing was loaded and "waiting_topics" is 0: reply "Nothing due" and stop. Otherwise reply with the summary as short bullets, plus any needs_bank / refresh_bank pages and how many pages "needs_variants" lists. Do NOT write question rewrites: the weekly task does that.
+> Never run git. Never edit vault files yourself — sync.py does all vault changes. If a step fails, report the error in one line and stop.
 
 If I said no to calendar reminders, leave step 5 out of that prompt.
 
@@ -44,7 +43,18 @@ Then write the task's ID into the quiz page's database so its **Sync now** butto
 
 Then run the task once now. If the run can't find the vault, tell me to add my vault folder in the task's settings and run it again. Once a run has worked, tell me I can switch the task's model to Haiku in its settings (it only moves JSON around).
 
-**7. Skills:** propose `skills/ingest/SKILL.md` from the kit as a new skill named `ingest` (replace the vault path in it with mine) so I can type `/ingest`, and `skills/update-second-brain/SKILL.md` as `update-second-brain` so future updates are one command. Check the vault's `.sync/kit_version` matches the kit's `VERSION`.
+**6b. Weekly question top-up:** create a second scheduled task named "Second Brain weekly rewrites" that needs my computer, runs once a week (default Sunday 18:34, before that night's sync) and attaches my vault folder. Leave its model at the default: it writes questions, so it needs a strong model. Use this prompt, with my vault folder name filled in:
+
+> Weekly question top-up for my Obsidian vault. In device_bash, cd into the vault first: `cd "$HOME/mnt/<VAULT FOLDER NAME>"` (run `ls $HOME/mnt` if that fails). Do exactly this and nothing else:
+> 1. If a skill named write-quiz-questions is available, load it and follow it. Otherwise follow the question bank, rewrites and refresh banks rules in the vault's CLAUDE.md.
+> 2. Run `python3 .sync/sync.py . --lint` (questions with quality problems) and `python3 .sync/sync.py . --needs` (pages short of rewrites).
+> 3. Budget: at most 30 questions written or fixed in this run, in this order: (a) lint problems in current versions (entries whose "at" has no "rewrite"); (b) lines under any page's `## Flagged questions`: fix the question if its prompt is still in the bank, then delete the line (and the heading if it is now empty); if the prompt is gone and the page has no lint problems left, just delete the line; (c) missing rewrites from --needs (append to that question's `alts`: same kind, same core idea, new scenario, freshly written options); (d) lint problems in rewrites. Stop at the budget and say what is left.
+> 4. Only change the JSON inside each page's `## Question bank` and the lines under `## Flagged questions`. Use a short python read-modify-write script; never retype a page.
+> 5. `python3 .sync/sync.py . --check` must print `[]`. Run --lint again.
+> 6. Reply in 3 short bullets: questions fixed (lint before -> after), rewrites written, what is left.
+> Never run git. Do not publish anything: the nightly sync sends changed questions to the phone. If a step fails, report the error in one line and stop.
+
+**7. Skills:** propose every skill in the kit's `skills/` folder as a new skill under its folder name, replacing `[VAULT_PATH]` with my vault path: `ingest` (so I can type `/ingest`), `update-second-brain` (future updates are one command), `write-quiz-questions` and `write-build-exercises` (the quality rules for questions, Build it exercises and labs). Check the vault's `.sync/kit_version` matches the kit's `VERSION`.
 
 **8. Optional extras — offer each in one line, set up the ones I pick:**
 - Obsidian Git plugin for automatic backups (keep the repo private)

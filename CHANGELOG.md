@@ -2,6 +2,14 @@
 
 The quiz page shows its version under **Settings → About**. To update an existing setup, type `/update-second-brain` in Cowork (or paste [`UPDATE_PROMPT.md`](UPDATE_PROMPT.md) if you set up before v1.14).
 
+## 1.22.0
+- **Home and packs:** the page opens on Home: a Today tile (everything due) and a tile per pack. A pack is a course or subject (`pack: <name>` on a topic page; none = My notes). Pick one and Quiz, Learn, Practice and Build show just that pack.
+- **New layout:** a bottom bar (Home · Quiz · Learn · Practice · Build), a compact header with Progress and Settings buttons, toasts, and a bottom sheet for flagging.
+- **Build tab:** Build it and Do or don't for every topic, the best-practice notes as Tips, and labs: `builds/` pages with `rung:` show up in order and are ticked off from the phone.
+- **A calmer queue:** one batch a day, nothing new until today's is finished, at most 2 brand-new topics a day, a fail drops two steps (not back to day 1), the lesson comes first after two rounds without a clean pass, and a sync starts by itself when you finish a session.
+- **Better questions:** two new skills (`write-quiz-questions`, `write-build-exercises`) and `python3 .sync/sync.py . --lint` for questions with detectable problems. Open "Explain X…" prompts are gone. Rewrites moved from the nightly sync to a weekly task (max 30 a run), so the nightly run stays cheap.
+- Update needs: the sync task prompt changed and there is a new weekly task: update both from `SETUP_PROMPT.md` steps 6 and 6b. Propose the two new skills. Then say **lint questions** in a vault session to repair existing questions. Optional: add `pack: <name>` to topic pages to get pack tiles.
+
 ## 1.21.0
 - **Best practice + Build it:** every lesson gets a Best practice step (do's and don'ts with a why). After the lesson, two drag-and-drop exercises: put a real solution's lines in best-practice order while leaving the trap lines out, then sort 8 practices into Do / Don't. Build it also turns up in Practice (every 5th card). Misses become weak spots.
 - Update needs: say **write build exercises** in a vault session (adds the Best practice step and Build it exercises to existing topics; `python3 .sync/sync.py . --check` must print `[]`), then publish banks for Practice.

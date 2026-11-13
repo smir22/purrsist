@@ -36,21 +36,21 @@ For each gap:
 Keep a tally: fixed vs still shaky.
 
 ## 5. Write notes + quizzes
-- One page per concept, Title Case, right `wiki/` folder. Frontmatter: `review: true, stage: 0, next_review: <tomorrow>, last_result:, bank_set: 0`.
+- One page per concept, Title Case, right `wiki/` folder. Frontmatter: `review: true, stage: 0, next_review: <tomorrow>, last_result:, bank_set: 0`, plus `pack: <name>` when the topic belongs to a course or pack (ask once per source; no pack = My notes).
 - Sections: concrete bullets, `## Weak spots` (every gap, dated; mark "(still shaky)" where it applies), `## My notes` (empty), `## Question bank`, `## Related` (≥1 link).
 - Source summary in `wiki/sources/` if there was a source. Update the folder `_index.md`, append `log.md` (`## [date] ingest | <topic>`).
 - Never touch `raw/`, pages with an `owner:` field, or `## My notes`.
 
-**Question bank:** `## Question bank` + a ```json block, 3 sets of `[recall, apply, teach]`:
+**Question bank:** `## Question bank` + a ```json block, 3 sets of `[recall, apply, teach]`. Quality rules: the `write-quiz-questions` skill (load it when available; it wins over the bullets below), then `python3 .sync/sync.py . --lint` must list nothing for the questions you wrote:
 - every question: `{kind, prompt, options:[4], correct:<index>, answer, points}`. The quiz is tap-only by default, so all three kinds need options (vary the correct position); `answer`/`points` serve the optional written mode
 - every question also has `alts`: 2 rewrites for later reviews (same `kind` and core idea, but a new scenario, wording and options; full question objects with no `alts` of their own). A review never repeats a question.
 - Distractors: near-misses / common misconceptions that differ from the right answer in one key detail; same length and shape as the correct option (it must not be the longest — keep options short, detail goes in `answer`); none arguably correct
 - Never ask about code the learner can't see ("in your serve.py…"). Either add a `code` field with the snippet (≤10 lines, ≤40 chars wide so it fits a phone) or make the question general. No trivia (ports, file paths, README steps)
-- recall: key fact · apply: realistic prod / interview / design scenario · teach: "Explain X to a junior…" (as MCQ: which explanation is right)
+- recall: key fact · apply: realistic prod / interview / design scenario · teach: a junior's misconception to correct ("A junior says '…'. What's the best correction?") or "Which explanation of X is right for a junior?", never an open "Explain X…" prompt
 - `points[0]` = core idea. **Set 1 targets the still-shaky gaps**, then the other gaps, then the rest. Then `python3 .sync/sync.py . --check` (in the vault) must print `[]`.
 - Pure facts (ports, flags, vocab) → also `anki/new-cards.txt`.
 - **Lesson:** also write the page's `## Lesson` for the Learn tab: 4–7 `### ` steps that teach the topic from zero (problem → idea → their real code line by line → gotchas from the weak spots → recap). Follow the vault `CLAUDE.md` **lessons** rules exactly.
-- **Build it:** also write the page's `## Build it` exercises (an `order` exercise with trap lines and a Do / Don't `sort`) and include the lesson's `### Best practice` step. Follow the vault `CLAUDE.md` **build it** and **lessons** rules exactly.
+- **Build it:** also write the page's `## Build it` exercises (an `order` exercise with trap lines and a Do / Don't `sort`) and include the lesson's `### Best practice` step. Follow the `write-build-exercises` skill (when available) and the vault `CLAUDE.md` **build it** and **lessons** rules exactly.
 - After writing, publish banks for Practice (see vault `CLAUDE.md`).
 
 ## 6. Wrap up (3 lines)

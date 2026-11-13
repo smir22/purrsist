@@ -61,6 +61,7 @@
   --accent:#268bd2; --on-accent:#fdf6e3; --pink:#d33682; --cyan:#2aa198; --yellow:#b58900;
   --good:#859900; --warn:#cb4b16; --bad:#dc322f; color-scheme:light }
 html,body{background:var(--bg)}
+body{overflow-x:clip}   /* a card sliding in must never scroll the page sideways */
 body{color:var(--ink);font:16px/1.5 var(--body);padding-inline:16px;padding-block:20px 40px}
 .wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
 header{display:flex;flex-direction:column;gap:8px}
@@ -179,7 +180,51 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
 .skin .sw{display:flex;height:22px;border-radius:6px;overflow:hidden;border:1px solid var(--line)}
 .skin .sw i{flex:1}
 .skin span{font-size:.85rem;font-weight:500}
-.tabs{align-self:stretch}.tabs button{flex:1;padding:6px 4px}
+/* Home: a Today tile, then one tile per pack. The active pack shows as a chip under the tabs */
+.todaytile{display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;padding:16px 18px;border-radius:14px;background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.todaytile div{min-width:0}.todaytile b{display:block;font:700 1.25rem/1.2 var(--display)}.todaytile small{font-size:.85rem}.todaytile span{font:700 1.3rem/1 var(--mono)}
+.packs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.pack{display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:14px;text-align:left;min-width:0}
+.pack[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.pack b{font:600 1rem/1.25 var(--display);overflow-wrap:anywhere}
+.pack small{color:var(--muted);font-size:.78rem}
+.pack .mbar{height:6px}
+.pack .due{align-self:flex-start;font:600 .7rem/1 var(--mono);letter-spacing:.05em;text-transform:uppercase;padding:5px 7px;border-radius:6px;background:var(--accent-soft);color:var(--accent)}
+.pack .due.none{background:transparent;color:var(--muted);padding-inline:0}
+.packbar{display:flex;align-items:center;gap:8px}.packbar button{min-height:30px;padding:4px 10px;font-size:.8rem}
+/* ---------- App layout: compact header lockup (cat, name, status, Progress + Settings), floating bottom bar, softer cards ---------- */
+body{padding-block:16px calc(108px + env(safe-area-inset-bottom,0px))}
+header{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;column-gap:10px;row-gap:10px}
+h1{font-size:1.3rem;grid-column:2;grid-row:1;align-self:end}
+.tcat{display:contents}
+.tcat .art{font-size:11px;grid-column:1;grid-row:1/3;align-self:center}
+.tcat .say{grid-column:2;grid-row:2;font-size:.8rem;align-self:start;padding:0}
+.hbtn{grid-row:1/3;width:42px;min-height:42px;padding:0;display:grid;place-items:center;border-radius:14px;color:var(--muted);font-size:1.1rem}
+.hbtn[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
+.hbtn svg,.tabs svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+header .bar,header .packbar,header .pending{grid-column:1/-1}
+header .bar{height:4px}
+.tabs{position:fixed;z-index:40;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));width:min(536px,calc(100% - 24px));display:flex;gap:2px;padding:6px;background:var(--surface);border:1px solid var(--line);border-radius:24px;box-shadow:0 8px 24px rgba(0,0,0,.14)}
+.tabs button{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:52px;padding:6px 0;border:0;border-radius:18px;background:transparent;color:var(--muted);font-size:.68rem;font-weight:500;text-align:center}
+.tabs button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.toasts{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+.card{border-radius:18px}
+.chip{border-radius:999px;padding:6px 10px}
+.topic{font-weight:700}
+.opts button{border-radius:14px}
+.todaytile{border-radius:20px;padding:18px}
+.todaytile span{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:50%;background:var(--on-accent);color:var(--accent);font-size:1.1rem}
+.pack{border-radius:18px}
+.packs .pack:nth-child(4n+1){background:color-mix(in srgb,var(--accent) 8%,var(--surface))}
+.packs .pack:nth-child(4n+2){background:color-mix(in srgb,var(--pink) 8%,var(--surface))}
+.packs .pack:nth-child(4n+3){background:color-mix(in srgb,var(--good) 9%,var(--surface))}
+.packs .pack:nth-child(4n+4){background:color-mix(in srgb,var(--warn) 9%,var(--surface))}
+.pack .due{border-radius:999px;padding:6px 10px;background:var(--accent);color:var(--on-accent)}
+.pack .due.none{background:transparent;color:var(--muted);padding-inline:0}
+.row .acts{display:flex;gap:8px;flex:none}   /* Build rows: Tips and Build sit in fixed-width slots, so they line up down the list */
+.acts button{min-height:40px;padding:8px 6px;text-align:center;width:76px}
+.acts .tips{width:56px;color:var(--muted)}
+.acts .gap{width:56px}
 .lesson ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;line-height:1.45}
 .lesson h3{font:500 .72rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:6px 0 0}
 .lesson .weak li::marker{color:var(--warn)}.lesson .weak li{color:var(--ink)}
@@ -196,8 +241,8 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
 .tile small{color:var(--muted);font-size:.74rem;line-height:1.3}
 .tile .lbl{font:500 .66rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .xpbar{height:4px;background:var(--line);border-radius:2px;overflow:hidden}.xpbar i{display:block;height:100%;background:var(--accent)}
-.heat{display:grid;grid-template-rows:repeat(7,1fr);grid-auto-flow:column;grid-auto-columns:1fr;gap:3px}
-.heat span{aspect-ratio:1;border-radius:3px;background:var(--line)}
+.heat{display:grid;grid-template-rows:repeat(7,auto);grid-template-columns:repeat(20,minmax(0,1fr));grid-auto-flow:column;gap:3px}
+.heat span{aspect-ratio:1;min-width:0;padding:0;border-radius:3px;background:var(--line)}
 .heat .h1{background:var(--heat1)}.heat .h2{background:var(--heat2)}.heat .h3{background:var(--accent)}.heat .fut{background:transparent}
 .heat .today{outline:1.5px solid var(--cyan);outline-offset:1px}
 .legend{display:flex;gap:4px;align-items:center;justify-content:flex-end;font-size:.72rem;color:var(--muted)}
@@ -234,6 +279,21 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
 .mlist .row{cursor:pointer;padding:9px 0}.mlist .row.done{cursor:default;opacity:.6}
 .backlink{align-self:flex-start;min-height:30px;padding:2px 0;border:0;background:transparent;font-size:.82rem}.mlist .pill{background:transparent;border:1.5px solid}
 .card h2.small{font:600 1rem/1.3 var(--display);margin:0}
+/* Press feedback, toasts and the bottom sheet (all native: no library) */
+button{transition:transform .08s ease,background-color .15s ease,border-color .15s ease}
+button:not(:disabled):not(.btile):active{transform:scale(.97)}
+.toasts{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;justify-content:center;pointer-events:none;padding:0 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.toast{background:var(--ink);color:var(--bg);font-size:.88rem;font-weight:500;line-height:1.35;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:100%;animation:toastin .22s cubic-bezier(.2,.8,.2,1);transition:opacity .2s,transform .2s}
+.toast.out{opacity:0;transform:translateY(8px)}
+@keyframes toastin{from{opacity:0;transform:translateY(12px)}}
+dialog.sheet{margin:auto auto 0;width:100%;max-width:560px;max-height:85%;padding:0;border:0;border-radius:18px 18px 0 0;background:var(--surface);color:var(--ink);box-shadow:0 -10px 40px rgba(0,0,0,.3);animation:sheetup .26s cubic-bezier(.2,.8,.2,1)}
+dialog.sheet::backdrop{background:rgba(0,0,0,.45)}
+.sheetin{display:flex;flex-direction:column;gap:14px;padding:10px 16px calc(18px + env(safe-area-inset-bottom,0px))}
+.sheet .grab{align-self:center;width:38px;height:4px;border-radius:2px;background:var(--line)}
+.sheet h2{font:600 1.05rem/1.3 var(--display);margin:0}
+.sheet .flagmenu{gap:8px}.sheet .flagmenu button{min-height:44px;padding:8px 12px;font-size:.9rem}
+@keyframes sheetup{from{transform:translateY(100%)}}
+@media (prefers-reduced-motion:reduce){button{transition:none}button:not(:disabled):not(.btile):active{transform:none}.toast,dialog.sheet{animation:none}}
 .empty h2{font:600 1.15rem/1.3 var(--display);margin:0}
 .empty p{margin:0;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
@@ -245,15 +305,12 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
     <div class="tcat idle" id="tcat"><pre class="art" id="catart" aria-hidden="true"></pre><p class="say"><span class="sub" id="sub">Loading your questions…</span><span class="react" id="catsay" aria-live="polite"></span></p></div>
     <p class="pending" id="pending" hidden></p>
     <div class="bar" aria-hidden="true"><i id="prog"></i></div>
-    <div class="mode tabs" id="tabs" role="tablist" aria-label="View">
-      <button type="button" data-t="quiz">Quiz</button>
-      <button type="button" data-t="learn">Learn</button>
-      <button type="button" data-t="practice">Practice</button>
-      <button type="button" data-t="progress">Progress</button>
-      <button type="button" data-t="settings">Settings</button>
-    </div>
+    <button type="button" class="hbtn" data-t="progress" aria-label="Progress"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-6"/></svg></button>
+    <button type="button" class="hbtn" data-t="settings" aria-label="Settings">⚙</button>
+    <div class="packbar" id="packbar" hidden><span class="chip" id="packname"></span><button type="button" class="ghost" id="packclear">Show all packs</button></div>
   </header>
-  <div id="quizView" class="view">
+  <section id="homeView" class="view" hidden></section>
+  <div id="quizView" class="view" hidden>
     <div class="mode" id="style" role="group" aria-label="How you answer">
       <button type="button" data-s="tap">Tap answers</button>
       <button type="button" data-s="write">Write answers</button>
@@ -266,11 +323,12 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
   <main id="main">
     <section class="card empty">
       <h2>Waiting for today's questions</h2>
-      <p>Questions load from your vault at the nightly sync, which also saves your answers back to it.</p>
+      <p>Questions load from your vault at each sync, which also saves your answers back to it.</p>
     </section>
   </main>
   </div>
   <section id="learnView" class="view" hidden></section>
+  <section id="buildView" class="view" hidden></section>
   <section id="progressView" class="view" hidden></section>
   <section id="practiceView" class="view" hidden>
     <section class="card hud">
@@ -298,7 +356,7 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
         <button type="button" data-n="5">5 topics</button>
         <button type="button" data-n="8">8 topics</button>
       </div>
-      <p class="hint">Topics loaded each night, 3 questions each. Failed and overdue topics come first. Applies from the next sync.</p>
+      <p class="hint">Topics loaded per day, 3 questions each. Failed and overdue topics come first, and at most 2 brand-new topics start per day. Nothing new loads until you finish what's waiting.</p>
     </section>
     <section class="card">
       <h2 class="small">Theme</h2>
@@ -316,12 +374,61 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;border-r
   </section>
 </div>
 
+<nav class="tabs" id="tabs" aria-label="Sections">
+  <button type="button" data-t="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/></svg><span>Home</span></button>
+  <button type="button" data-t="quiz"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.4 2.4 4.6-5"/></svg><span>Quiz</span></button>
+  <button type="button" data-t="learn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5A1.5 1.5 0 0 1 6.5 4H19v14H6.5A1.5 1.5 0 0 0 5 19.5z"/><path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19"/></svg><span>Learn</span></button>
+  <button type="button" data-t="practice"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></svg><span>Practice</span></button>
+  <button type="button" data-t="build"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14h7v6H4zM13 14h7v6h-7zM8.5 5h7v6h-7z"/></svg><span>Build</span></button>
+</nav>
+
 <script>
 const WAIT = [1, 3, 7, 14, 31, 60, 120];
 const KIND = { recall: "Recall", why: "Why", apply: "Apply", teach: "Teach it" };
 const SCORE = { correct: 1, partial: 0.5, wrong: 0 };
 const main = document.getElementById("main");
 let Q = [], A = new Map(), db = null, sample = null;
+
+// ---------- Packs: a topic belongs to one or more packs (its page's `pack:` field; none = My notes). ----------
+// Home shows a tile per pack; picking one filters Quiz, Learn and Practice. Q is always the visible queue, QALL everything loaded.
+const ALL = "*", MINE = "My notes";
+let QALL = [], SHARDS = [], PACKOF = {}, pack = ALL;
+try { pack = localStorage.getItem("pack") || ALL; } catch (e) {}
+const packsOf = page => PACKOF[page]?.length ? PACKOF[page] : [MINE];
+const inPack = page => pack === ALL || packsOf(page).includes(pack);
+function showPack() { document.getElementById("packbar").hidden = pack === ALL; document.getElementById("packname").textContent = pack; }
+function setPack(p, go) {
+  pack = p; try { localStorage.setItem("pack", p); } catch (e) {}
+  quizTopic = null; shownId = null; bag = [];
+  buildPool();                               // re-filters the quiz queue, Learn and Practice
+  if (go) showTab(go); else if (tab === "home") renderHome();
+  if (tab === "practice") nextCard();
+}
+document.getElementById("packclear").onclick = () => setPack(ALL);
+function renderHome() {
+  const v = document.getElementById("homeView");
+  const left = QALL.filter(q => !A.has(q.id)), topics = new Set(left.map(q => q.topic)).size;
+  const today = el("button", "todaytile"), td = el("div"); today.type = "button";
+  td.append(el("b", null, "Today"), el("small", null, left.length ? `${left.length} question${left.length === 1 ? "" : "s"} in ${topics} topic${topics === 1 ? "" : "s"}, from every pack`
+    : QALL.length ? "All done for today" : "Nothing due right now"));
+  today.append(td, el("span", null, left.length ? "→" : "✓"));
+  today.onclick = () => setPack(ALL, "quiz");
+  const by = {};                             // pack name -> its pages
+  for (const sh of SHARDS) for (const t of sh.topics || []) for (const k of packsOf(t.p)) (by[k] ||= []).push(t.p);
+  const grid = el("div", "packs"), st = STATS.mastery?.by_page || {};
+  Object.keys(by).sort((a, b) => (a === MINE) - (b === MINE) || a.localeCompare(b)).forEach(name => {
+    const pages = by[name], due = left.filter(q => pages.includes(q.page)).length;
+    const b = el("button", "pack"), bar = el("div", "mbar"); b.type = "button"; b.setAttribute("aria-pressed", String(pack === name));
+    WAIT.forEach((d, i) => {                 // same ladder colours as Progress: how far this pack's topics have climbed
+      const c = pages.filter(pg => Number(st[pg] ?? 0) === i).length; if (!c) return;
+      const seg = el("i"); seg.style.width = (c / pages.length * 100) + "%"; seg.style.background = STAGE_COLORS[i]; seg.title = `${d}d: ${c}`; bar.append(seg);
+    });
+    b.append(el("b", null, name), el("small", null, `${pages.length} topic${pages.length === 1 ? "" : "s"}`), bar, el("span", due ? "due" : "due none", due ? `${due} due` : "Nothing due"));
+    b.onclick = () => setPack(name, due ? "quiz" : "practice");
+    grid.append(b);
+  });
+  v.replaceChildren(today, ...(Object.keys(by).length ? [el("p", "blabel", "Packs"), grid] : [el("p", "hint", "Your packs appear here after the first sync.")]));
+}
 let shownId = null, lastKey = "", busy = false, selfGrade = null;
 let LESSONS = {}, lessonOpen = null, lstreak = 0, lused = new Set();   // Learn tab
 let quizTopic = null, qfilter = "all";       // Quiz: the topic picked from today's list ("*" = all), and the list's step filter
@@ -332,6 +439,22 @@ const lessonFor = q => LESSONS[q.page] || Object.values(LESSONS).find(x => x.t =
 
 const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
 
+// Stuck topics (sync marks `relearn` after two results in a row that weren't a clean pass): the lesson comes before the questions, once per round
+const relearnKey = q => `${q.page}@${q.due}`;
+const relearned = (() => { try { return new Set(JSON.parse(localStorage.getItem("relearned") || "[]")); } catch (e) { return new Set(); } })();
+function relearnCard(q) {
+  const c = el("section", "card"), L = lessonFor(q);
+  const meta = el("div", "meta"); meta.append(el("span", "chip", "Lesson first"), el("span", "chip plain", "no clean pass twice running"));
+  const go = el("button", "primary", "Read the lesson"), row = el("div", "actions");
+  go.onclick = () => {
+    relearned.add(relearnKey(q)); try { localStorage.setItem("relearned", JSON.stringify([...relearned].slice(-100))); } catch (e) {}
+    showTab("learn"); learnReturn = q.id; openLesson(L.p);
+  };
+  row.append(go);
+  c.append(meta, el("h2", "topic", q.topic), el("p", "hint", "This topic keeps coming back. Take 3 minutes on the lesson, then answer its questions."), row);
+  return c;
+}
+
 // Same scoring the vault sync uses: avg >= .8 pass, >= .5 shaky, else fail
 function topicResult(qs) {      // flagged (skip) answers don't count; all flagged → "flagged"
   const s = qs.map(q => A.get(q.id)?.verdict).filter(v => v !== "skip").map(v => SCORE[v] ?? 0);
@@ -339,7 +462,7 @@ function topicResult(qs) {      // flagged (skip) answers don't count; all flagg
   const avg = s.reduce((a, b) => a + b, 0) / s.length;
   return avg >= 0.8 ? "pass" : avg >= 0.5 ? "shaky" : "fail";
 }
-function nextStage(stage, r) { return r === "pass" ? Math.min(stage + 1, 6) : r === "shaky" ? stage : 0; }
+function nextStage(stage, r) { return r === "pass" ? Math.min(stage + 1, 6) : r === "shaky" ? stage : Math.max(stage - 2, 0); }   // fail: back two steps, same as sync.py
 
 function render() {
   const pending = Q.filter(q => !A.has(q.id)).sort((a, b) => skipped.indexOf(a.id) - skipped.indexOf(b.id));   // skipped ones last
@@ -364,7 +487,7 @@ function render() {
 function emptyCard() {
   const c = el("section", "card empty");
   c.append(el("h2", null, "Nothing due right now"),
-    el("p", null, "New questions load at the nightly sync, or tap Sync now on the Progress tab. Say \"ingest\" or \"quiz me\" to Claude to add more."));
+    el("p", null, "New questions load at the next sync, or tap Sync now on the Progress screen. Say \"ingest\" or \"quiz me\" to Claude to add more."));
   return c;
 }
 
@@ -390,6 +513,7 @@ function questionCard(q) {
 
   const a = A.get(q.id);
   if (shownId === q.id && a) { c.append(feedback(q, a)); return c; }
+  if (q.relearn && !a && lessonFor(q) && !relearned.has(relearnKey(q))) return relearnCard(q);
 
   const hasOpts = Array.isArray(q.options) && q.options.length;
   if (hasOpts && (style === "tap" || q.kind === "recall")) {   // written mode: why/apply/teach get a text box
@@ -572,12 +696,13 @@ function pickCard() {            // today's topics: tap one to do just its quest
 
 function doneCard(topics) {
   const c = el("section", "card");
-  c.append(el("h2", "topic", "Done for now"), el("p", "hint", "Results sync to your vault tonight (or tap Sync now on the Progress tab). This is where each topic moves on the ladder."));
+  c.append(el("h2", "topic", "Done for now"), el("p", "hint", "Syncing to your vault now if your Mac is awake, otherwise tonight. This is where each topic moves on the ladder."));
+  autoSync();
   const rows = el("div", "rows");
   topics.forEach(t => {
     const qs = Q.filter(q => q.topic === t), stage = Number(qs[0].stage) || 0;
     const r = topicResult(qs), helped = qs.some(q => A.get(q.id)?.assisted);
-    const ns = r === "flagged" ? stage : helped ? 0 : nextStage(stage, r);   // learned first = not real recall → day 1
+    const ns = r === "flagged" ? stage : nextStage(stage, helped ? "fail" : r);   // learned first = not real recall → counts as a fail
     const row = el("div", "row"), d = el("div");
     const days = r === "flagged" ? 1 : WAIT[ns];
     d.append(el("b", null, t), el("small", null, `Stage ${stage} → ${ns} · back in ${days} day${days === 1 ? "" : "s"}${helped && r !== "flagged" ? " · learned first" : ""}`));
@@ -623,7 +748,7 @@ async function flush() {
       catch (e) { if (!HARD.includes(e?.code) && (outbox[0].tries = (outbox[0].tries || 0) + 1) < 5) break; }   // retry later; give up on a write after 5 tries
       outbox.shift(); saveBox();
     }
-  } finally { flushing = false; showPending(); }
+  } finally { flushing = false; showPending(); autoSync(); }
 }
 function showPending() {
   const n = outbox.filter(w => w.c === "answers").length, p = document.getElementById("pending");
@@ -633,13 +758,43 @@ addEventListener("online", flush);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) flush(); });
 setInterval(flush, 30000);
 
+// ---------- Auto-sync: once every loaded question is answered and sent, start the vault sync (once per batch) ----------
+function autoSync() {
+  const trig = STATS.config?.trigger_id, sig = QALL.map(q => q.id).join();
+  if (!mcp || !trig || !QALL.length || outbox.length || QALL.some(q => !A.has(q.id))) return;
+  try { if (localStorage.getItem("synced") === sig) return; localStorage.setItem("synced", sig); } catch (e) { return; }   // no storage: no auto-sync, rather than firing on every render
+  mcp.callTool("Claude Code Remote", "fire_trigger", { trigger_id: trig }, { cache: false }).then(() => toast("Session done. Syncing to your vault."))
+    .catch(() => { try { localStorage.removeItem("synced"); } catch (e) {} });
+}
+
+// ---------- Toasts, bottom sheet, counting numbers (all native, no library) ----------
+const toastBox = el("div", "toasts"); toastBox.setAttribute("aria-live", "polite"); document.body.append(toastBox);
+function toast(text) {            // one at a time: a new toast replaces the last
+  const t = el("div", "toast", text); toastBox.replaceChildren(t);
+  setTimeout(() => { t.classList.add("out"); setTimeout(() => t.remove(), 220); }, 2600);
+}
+function sheet(title, body) {     // bottom sheet: a tap outside, Esc or the returned close() dismisses it
+  const d = el("dialog", "sheet"), inner = el("div", "sheetin");
+  inner.append(el("span", "grab"), el("h2", null, title), body); d.append(inner);
+  d.onclick = e => { if (e.target === d) d.close(); };
+  d.onclose = () => d.remove();
+  document.body.append(d); d.showModal();
+  return () => d.close();
+}
+function countTo(node, to, fmt) { // a number ticks up or down to its new value
+  const from = Number(node.dataset.n ?? to); node.dataset.n = to;
+  if (from === to || matchMedia("(prefers-reduced-motion: reduce)").matches) { node.textContent = fmt(to); return; }
+  const t0 = performance.now();
+  const step = t => { const k = Math.min(1, (t - t0) / 450); node.textContent = fmt(Math.round(from + (to - from) * k)); if (k < 1 && Number(node.dataset.n) === to) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+
 // ---------- Flag a bad question (one or more reasons): logged on its vault page, fixed at "refresh banks"; the question is skipped ----------
 const FLAG_REASONS = ["Wrong answer", "Question unclear", "Answers unclear", "Needs code", "Too easy"];
 function flagBtn(q, card, then) {
   const b = el("button", "flag", "⚑ Flag"); b.type = "button"; b.setAttribute("aria-label", "Flag this question");
   b.onclick = e => {
     e.stopPropagation();
-    if (card.querySelector(".flagmenu")) return card.querySelector(".flagmenu").remove();
     const m = el("div", "flagmenu"), picked = new Set();
     const send = el("button", "primary", "Send"); send.type = "button"; send.disabled = true;
     FLAG_REASONS.forEach(r => {
@@ -649,13 +804,13 @@ function flagBtn(q, card, then) {
     });
     send.onclick = () => {
       const reasons = FLAG_REASONS.filter(r => picked.has(r));
-      m.remove(); b.disabled = true; b.textContent = "Flagged ✓";
+      close(); b.disabled = true; b.textContent = "Flagged ✓"; toast("Flagged. It gets fixed at the next bank refresh.");
       put("answers", `f-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         { mode: "flag", reason: reasons.join(" + "), reasons, page: q.page || "", topic: q.topic, prompt: q.prompt, at: new Date().toISOString() }).catch(() => {});
       then?.();
     };
     m.append(send);
-    b.closest(".meta").after(m);
+    const close = sheet("What's wrong with this question?", m);
   };
   return b;
 }
@@ -815,7 +970,7 @@ function renderProgress() {
       b.disabled = true; b.textContent = "Starting…";
       try {
         await mcp.callTool("Claude Code Remote", "fire_trigger", { trigger_id: trig }, { cache: false });
-        b.textContent = "Sync started"; msg.textContent = "Results land in a minute or two. If your Mac is asleep, the next scheduled sync catches up.";
+        b.textContent = "Sync started"; toast("Sync started"); msg.textContent = "Results land in a minute or two. If your Mac is asleep, the next scheduled sync catches up.";
       } catch (e) {
         b.textContent = "Sync now"; b.disabled = false;
         msg.textContent = e?.code === "not_in_manifest" ? "Sync isn't allowed for this page. Turn it on in the page's permissions." :
@@ -824,15 +979,17 @@ function renderProgress() {
       setTimeout(() => { b.disabled = false; b.textContent = "Sync now"; }, 120000);
     };
     const row = el("div", "actions"); row.append(b); sc.append(row, msg);
-  } else sc.append(el("p", "hint", "Syncs run automatically every night."));
+  } else sc.append(el("p", "hint", "Syncs run every night, and when you finish a session."));
 
   v.replaceChildren(tiles, hc, mc, sc);
 }
-const tabBtns = document.querySelectorAll("#tabs button");
+const tabBtns = document.querySelectorAll("#tabs button, .hbtn");
 function showTab(t) {
   tab = t; if (t !== "learn") learnReturn = null;
   tabBtns.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.t === t)));
-  for (const v of ["quiz", "learn", "practice", "progress", "settings"]) document.getElementById(v + "View").hidden = t !== v;
+  for (const v of ["home", "quiz", "learn", "practice", "build", "progress", "settings"]) document.getElementById(v + "View").hidden = t !== v;
+  if (t === "home") renderHome();
+  if (t === "build" && !buildOpen) renderBuild();
   if (t === "practice") startPractice();
   if (t === "learn" && !lessonOpen) renderLearn();
   if (t === "progress") renderProgress();
@@ -872,10 +1029,10 @@ for (const [k, name, cols] of SKINS) {
 darkMQ.addEventListener?.("change", () => { if (skin === "system") applySkin(); });
 applySkin();
 tabBtns.forEach(b => b.onclick = () => showTab(b.dataset.t));
-showTab("quiz");
+showTab("home");
 
 // ---------- Practice: one question at a time, swap animation, hard mode, icon ----------
-const VERSION = "1.21.0";
+const VERSION = "1.22.0";
 document.getElementById("version").textContent = `Purrsist v${VERSION} · Second Brain Kit`;
 const ICONS = ["🧠", "🦉", "🐉", "🚀", "⚡", "🔥", "🐺", "🦊", "🐙", "🤖", "🛰️", "🗝️"];
 let pcount = 0, POOL = [], bag = [], pfilter = "all", combo = 0, practiceStarted = false, current = null, hard = false;
@@ -893,7 +1050,7 @@ function hud() {
   document.getElementById("pavatar").textContent = myIcon();
   document.getElementById("plevel").textContent = `Level ${T.level}`;
   document.getElementById("pxpbar").style.width = Math.round(T.pct * 100) + "%";
-  document.getElementById("pxp").textContent = `${T.xp} XP`;
+  countTo(document.getElementById("pxp"), T.xp, n => `${n} XP`);
   document.getElementById("pcombo").textContent = combo > 0 ? `Combo ×${combo}` : "Combo –";
   const hb = document.getElementById("phard"); hb.setAttribute("aria-pressed", String(hard));
   document.getElementById("pnote").textContent = hard
@@ -901,9 +1058,13 @@ function hud() {
     : "Half XP, keeps your streak. Misses become weak spots; the ladder never moves.";
 }
 function buildPool(shards) {
+  if (shards) SHARDS = shards; shards = SHARDS;
+  PACKOF = {}; for (const sh of shards) (sh.topics || []).forEach(t => { PACKOF[t.p] = t.k; });
+  if (pack !== ALL && shards.length && !Object.keys(PACKOF).some(pg => packsOf(pg).includes(pack))) pack = ALL;   // the saved pack is gone
+  Q = QALL.filter(q => inPack(q.page)); showPack();
   POOL = []; LESSONS = {};
-  for (const sh of shards) for (const t of sh.topics || []) if (t.l) LESSONS[t.p] = { t: t.t, p: t.p, ...t.l, b: t.b };
-  for (const sh of shards) for (const t of sh.topics || []) (t.sets || []).flat().forEach((q, i) => {
+  for (const sh of shards) for (const t of (sh.topics || []).filter(t => inPack(t.p))) if (t.l) LESSONS[t.p] = { t: t.t, p: t.p, ...t.l, b: t.b };
+  for (const sh of shards) for (const t of (sh.topics || []).filter(t => inPack(t.p))) (t.sets || []).flat().forEach((q, i) => {
     if (Array.isArray(q.options) && q.options.length) POOL.push({ ...q, topic: t.t, page: t.p, key: t.p + "#" + i });
   });
   const sel = document.getElementById("pfilter"), cur = sel.value || pfilter;
@@ -914,6 +1075,8 @@ function buildPool(shards) {
   if (tab === "practice" && !current) nextCard();
   if (tab === "learn" && !lessonOpen) renderLearn();
   if (!main.querySelector("textarea")?.value) { lastKey = ""; render(); }   // lessons arrived: show "Learn first"
+  if (tab === "home") renderHome();
+  if (tab === "build" && !buildOpen) renderBuild();
 }
 function refill() {           // weighted shuffle: low ladder steps come up more often
   let pool = POOL;
@@ -1195,21 +1358,137 @@ function weakTopics() {
     .map(L => ({ ...L, stage: stageOf(L.p), miss: miss(L.p), done: !!clearedMap()[L.p] }))
     .sort((a, b) => a.done - b.done || a.stage - b.stage || b.miss - a.miss || (b.w?.length || 0) - (a.w?.length || 0));
 }
-function renderLearn() {
-  lessonOpen = null;
-  const v = document.getElementById("learnView"), c = el("section", "card");
-  const list = weakTopics();
-  c.append(el("h2", "topic", "Learn"), el("p", "hint", "Weak topics first. Read the short lesson, then get 2 right in a row to clear it. Doesn't move the ladder."));
-  if (!list.length) { c.append(el("p", null, Object.keys(LESSONS).length ? "Nothing weak right now. Nice." : "Lessons appear after the next sync.")); v.replaceChildren(c); return; }
-  const rows = el("div", "rows");
-  for (const L of list) {
-    const row = el("div", "row"), d = el("div");
-    const bits = [`Stage ${L.stage}`]; if (L.w?.length) bits.push(`${L.w.length} weak spot${L.w.length === 1 ? "" : "s"}`); if (L.miss) bits.push(`${L.miss} missed`);
-    d.append(el("b", null, L.t), el("small", null, L.done ? "Cleared ✓" : bits.join(" · ")));
-    const b = el("button", L.done ? "ghost" : "primary", L.done ? "Again" : "Learn"); b.onclick = () => openLesson(L.p);
-    row.append(d, b); rows.append(row);
+function packTiles(groups, all, go, info) {     // "Pick a pack" tiles for Learn and Build; info(list) -> [small text, chip text or "", text when there is no chip]
+  const grid = el("div", "packs");
+  groups.forEach(g => {
+    const list = all.filter(L => packsOf(L.p).includes(g)), [small, chip, none] = info(list, g);
+    const b = el("button", "pack"), bar = el("div", "mbar"); b.type = "button";
+    WAIT.forEach((d, i) => {
+      const c = list.filter(L => L.stage === i).length; if (!c) return;
+      const seg = el("i"); seg.style.width = (c / list.length * 100) + "%"; seg.style.background = STAGE_COLORS[i]; bar.append(seg);
+    });
+    b.append(el("b", null, g), el("small", null, small), bar, el("span", chip ? "due" : "due none", chip || none));
+    b.onclick = () => setPack(g, go);
+    grid.append(b);
+  });
+  return grid;
+}
+const packOrder = all => pack !== ALL ? [pack] : [...new Set(all.flatMap(L => packsOf(L.p)))].sort((a, b) => (a === MINE) - (b === MINE) || a.localeCompare(b));
+
+// ---------- Build: hands-on per topic. Build it (put the real lines in order), Do or don't (sort the practices), and the lesson's best-practice notes ----------
+let buildOpen = null;
+const builtMap = () => { try { return JSON.parse(localStorage.getItem("built") || "{}"); } catch (e) { return {}; } };
+const bestPractice = L => L.m ? stepsOf(L.m).find(x => /best practice/i.test(x.h)) : null;
+function renderBuild() {
+  buildOpen = null;
+  const v = document.getElementById("buildView"), built = builtMap();
+  const all = Object.values(LESSONS).filter(L => buildKinds(L).length || bestPractice(L)).map(L => ({ ...L, stage: stageOf(L.p), done: built[L.p] || "" }))
+    .sort((a, b) => !!a.done - !!b.done || a.stage - b.stage || a.t.localeCompare(b.t));
+  if (!all.length) {
+    const c = el("section", "card"); c.append(el("h2", "topic", "Build"), el("p", null, "Build exercises and best-practice notes appear after the next sync.")); v.replaceChildren(c); return;
   }
-  c.append(rows); v.replaceChildren(c);
+  const groups = packOrder(all), count = list => { const n = list.filter(L => L.done).length; return [`${list.length} topic${list.length === 1 ? "" : "s"} · ${n} built`, list.length - n ? `${list.length - n} to build` : "", "All built"]; };
+  const withLabs = g => { const n = labsIn(g).length; return n ? ` · ${n} lab${n === 1 ? "" : "s"}` : ""; };
+  if (pack === ALL && groups.length > 1) { v.replaceChildren(el("p", "blabel", "Pick a pack"), packTiles(groups, all, "build", (list, g) => { const r = count(list); return [r[0] + withLabs(g), r[1], r[2]]; })); return; }
+  const cards = groups.map(g => {
+    const list = all.filter(L => packsOf(L.p).includes(g)), c = el("section", "card"), rows = el("div", "rows");
+    c.append(el("h2", "topic", g), el("p", "hint", count(list)[0]));
+    for (const L of list) {
+      const row = el("div", "row"), d = el("div"), kinds = buildKinds(L), bp = bestPractice(L);
+      d.append(el("b", null, L.t), el("small", null, L.done ? `Built ✓ ${L.done}` : kinds.map(k => k === "order" ? "Build it" : "Do or don't").join(" · ") || "Best practice only"));
+      const acts = el("div", "acts"); row.append(d, acts);
+      if (bp) { const t = el("button", "ghost tips", "Tips"); t.onclick = () => { const body = el("div", "lesson"); body.append(md(bp.body)); sheet(`Best practice: ${L.t}`, body); }; acts.append(t); }
+      else acts.append(el("span", "gap"));
+      if (kinds.length) { const b = el("button", L.done ? "ghost" : "primary", L.done ? "Again" : "Build"); b.onclick = () => runBuild(L, 0); acts.append(b); }
+      rows.append(row);
+    }
+    c.append(rows); return c;
+  });
+  const out = [];
+  groups.forEach((g, i) => { const lc = labsCard(g); if (lc) out.push(lc); out.push(cards[i]); });   // labs first: the topic list can be long
+  v.replaceChildren(el("p", "hint", "Put the real lines in order, sort the do's and don'ts, open Tips for the best-practice notes, or take on a lab."), ...out);
+}
+// Labs: real hands-on sessions from the vault's builds/ pages (stats/labs, written by the sync). Ticking one off tells the next sync.
+const labsDone = (() => { try { return new Set(JSON.parse(localStorage.getItem("labsdone") || "[]")); } catch (e) { return new Set(); } })();
+const labDone = l => l.status === "done" || labsDone.has(l.p);
+const labsIn = g => (STATS.labs?.labs || []).filter(l => (l.k?.length ? l.k : [MINE]).includes(g)).sort((a, b) => a.rung - b.rung);
+function labsCard(g) {
+  const labs = labsIn(g); if (!labs.length) return null;
+  const c = el("section", "card"), rows = el("div", "rows"), next = labs.find(l => !labDone(l));
+  c.append(el("h2", "topic", "Labs"), el("p", "hint", `${labs.filter(labDone).length} of ${labs.length} done · real hands-on sessions on your own machine, in order`));
+  for (const l of labs) {
+    const row = el("div", "row"), d = el("div"), b = el("button", l === next ? "primary" : "ghost", "Open");
+    d.append(el("b", null, l.t), el("small", null, labDone(l) ? "Done ✓" : [l.time, l === next ? "next up" : ""].filter(Boolean).join(" · ")));
+    b.onclick = () => openLab(l, g); row.append(d, b); rows.append(row);
+  }
+  c.append(rows); return c;
+}
+function openLab(l, g) {
+  buildOpen = l.p;
+  const c = el("section", "card lesson"), meta = el("div", "meta");
+  meta.append(el("span", "chip", `Lab ${l.rung}`), el("span", "chip plain", [g, l.time].filter(Boolean).join(" · ")));
+  c.append(meta, el("h2", "topic", l.t));
+  if (l.goal) { const p1 = el("p"); p1.append(inline(l.goal)); c.append(p1); }
+  if (l.n) { const p2 = el("p", "hint"); p2.append(inline(l.n)); c.append(p2); }
+  for (const x of l.s || []) c.append(el("h3", null, x.h), md(x.b));
+  const row = el("div", "actions");
+  if (labDone(l)) row.append(el("p", "hint", "Done ✓"));
+  else {
+    const fin = el("button", "primary", "I finished this lab");
+    fin.onclick = () => {
+      labsDone.add(l.p); try { localStorage.setItem("labsdone", JSON.stringify([...labsDone])); } catch (e) {}
+      put("answers", `lab-${Date.now()}`, { mode: "lab", page: l.p, topic: l.t, at: new Date().toISOString() }).catch(() => {});
+      toast("Lab ticked off. Tell Claude \"build done\" for the explain-back.");
+      renderBuild(); window.scrollTo(0, 0);
+    };
+    row.append(fin);
+  }
+  const back = el("button", "ghost backlink", "← Build list"); back.onclick = renderBuild;
+  c.append(row);
+  document.getElementById("buildView").replaceChildren(back, c); window.scrollTo(0, 0);
+}
+function runBuild(L, i) {       // Build tab: order, then sort, then back to the list
+  const kinds = buildKinds(L); if (i >= kinds.length) return renderBuild();
+  buildOpen = L.p;
+  const last = i === kinds.length - 1;
+  const card = buildCard(L, kinds[i], (verdict, missing) => {
+    logBuild(L, kinds[i], verdict, missing, "practice");
+    if (last) { const m = builtMap(); m[L.p] = dkey(new Date()); try { localStorage.setItem("built", JSON.stringify(m)); } catch (e) {} }
+  }, last ? "Done" : "Next", () => runBuild(L, i + 1));
+  const back = el("button", "ghost backlink", "← Build list"); back.onclick = renderBuild;
+  document.getElementById("buildView").replaceChildren(back, card); window.scrollTo(0, 0);
+}
+
+function renderLearn() {     // every lesson, grouped by pack, weakest first
+  lessonOpen = null;
+  const v = document.getElementById("learnView");
+  const missed = [...missedSet()].map(k => k.split("#")[0]), done = clearedMap();
+  const all = Object.values(LESSONS).map(L => ({ ...L, stage: stageOf(L.p), miss: missed.filter(x => x === L.p).length, done: !!done[L.p] }))
+    .sort((a, b) => a.done - b.done || a.stage - b.stage || b.miss - a.miss || (b.w?.length || 0) - (a.w?.length || 0) || a.t.localeCompare(b.t));
+  if (!all.length) {
+    const c = el("section", "card"); c.append(el("h2", "topic", "Learn"), el("p", null, "Lessons appear after the next sync.")); v.replaceChildren(c); return;
+  }
+  const groups = packOrder(all);
+  if (pack === ALL && groups.length > 1) {      // several packs: pick one first (the same tiles as Home), then see its lessons
+    v.replaceChildren(el("p", "blabel", "Pick a pack"), packTiles(groups, all, "learn", list => {
+      const cleared = list.filter(L => L.done).length, weak = list.filter(L => !L.done && L.stage <= 1).length;
+      return [`${list.length} lesson${list.length === 1 ? "" : "s"} · ${cleared} cleared`, weak ? `${weak} to work on` : "", "All steady"];
+    })); return;
+  }
+  const cards = groups.map(g => {
+    const list = all.filter(L => packsOf(L.p).includes(g)), cleared = list.filter(L => L.done).length;
+    const c = el("section", "card"), rows = el("div", "rows");
+    c.append(el("h2", "topic", g), el("p", "hint", `${list.length} lesson${list.length === 1 ? "" : "s"} · ${cleared} cleared · weakest first`));
+    for (const L of list) {
+      const row = el("div", "row"), d = el("div");
+      const bits = [`${WAIT[L.stage]}d step`]; if (L.w?.length) bits.push(`${L.w.length} weak spot${L.w.length === 1 ? "" : "s"}`); if (L.miss) bits.push(`${L.miss} missed`);
+      d.append(el("b", null, L.t), el("small", null, L.done ? "Cleared ✓" : bits.join(" · ")));
+      const b = el("button", L.done ? "ghost" : "primary", L.done ? "Again" : "Learn"); b.onclick = () => openLesson(L.p);
+      row.append(d, b); rows.append(row);
+    }
+    c.append(rows); return c;
+  });
+  v.replaceChildren(el("p", "hint", "Read the short lesson, then get 2 right in a row to clear it. Doesn't move the ladder."), ...cards);
 }
 function openLesson(page) {
   const L = LESSONS[page]; if (!L) return renderLearn();
@@ -1332,7 +1611,7 @@ function check(L) {
 // Daily quiz size (read by the sync from stats/prefs)
 const capBtns = document.querySelectorAll("#cap button");
 function showCap() { const n = STATS.prefs?.max_topics || 5; capBtns.forEach(b => b.setAttribute("aria-pressed", String(Number(b.dataset.n) === n))); }
-capBtns.forEach(b => b.onclick = () => { const n = Number(b.dataset.n); STATS = { ...STATS, prefs: { max_topics: n } }; showCap(); put("stats", "prefs", { max_topics: n }).catch(() => {}); });
+capBtns.forEach(b => b.onclick = () => { const n = Number(b.dataset.n); STATS = { ...STATS, prefs: { max_topics: n } }; showCap(); toast(`${n} topics a day, from the next sync`); put("stats", "prefs", { max_topics: n }).catch(() => {}); });
 showCap();
 // Icon picker (saved on the quiz page, so it follows you across devices)
 const iconBox = document.getElementById("icons");
@@ -1352,26 +1631,26 @@ async function boot() {
   db = await claude.use("db");
   if (!db) { document.getElementById("sub").textContent = "Open this page in Claude to load your questions."; return; }
   claude.use("sample").then(s => { sample = s; });
-  claude.use("mcp").then(m => { mcp = m; if (tab === "progress") renderProgress(); });
+  claude.use("mcp").then(m => { mcp = m; autoSync(); if (tab === "progress") renderProgress(); });
   const fail = () => { document.getElementById("sub").textContent = "Lost connection. Reopen the page to reload."; };
   let qSeen = false;
   db.collection("activity").onSnapshot(s => {
     ACT = Object.fromEntries(s.docs.map(d => [d.id, d.data()])); actLoaded = true;
-    if (qSeen && !Q.length) markChecked();
+    if (qSeen && !QALL.length) markChecked();
     if (tab === "progress") renderProgress();
   }, () => {});
-  db.collection("stats").onSnapshot(s => { STATS = Object.fromEntries(s.docs.map(d => [d.id, d.data()])); showIcons(); showCap(); if (tab === "progress") renderProgress(); if (tab === "practice") hud(); }, () => {});
+  db.collection("stats").onSnapshot(s => { STATS = Object.fromEntries(s.docs.map(d => [d.id, d.data()])); showIcons(); showCap(); autoSync(); if (tab === "home") renderHome(); if (tab === "build" && !buildOpen) renderBuild(); if (tab === "progress") renderProgress(); if (tab === "practice") hud(); }, () => {});
   showPending(); flush();
   db.collection("bank").onSnapshot(s => { buildPool(s.docs.map(d => d.data())); }, () => {});
   db.collection("questions").orderBy("order").onSnapshot(s => {
-    Q = s.docs.map(d => ({ id: d.id, ...d.data() })); render();
-    if (!s.metadata?.fromCache) { qSeen = true; if (!Q.length) markChecked(); }
+    QALL = s.docs.map(d => ({ id: d.id, ...d.data() })); Q = QALL.filter(q => inPack(q.page)); render(); if (tab === "home") renderHome();
+    if (!s.metadata?.fromCache) { qSeen = true; if (!QALL.length) markChecked(); }
   }, fail);
   db.collection("answers").onSnapshot(s => {
     const m = new Map(s.docs.map(d => [d.id, d.data()]));
     for (const [k, v] of A) if (!m.has(k) && k === shownId) m.set(k, v);   // keep local feedback until the write lands
     for (const w of outbox) if (w.c === "answers" && !w.data.mode && !m.has(w.id)) m.set(w.id, w.data);   // answered offline, not sent yet
-    A = m; render();
+    A = m; render(); if (tab === "home") renderHome();
   }, fail);
 }
 boot();
